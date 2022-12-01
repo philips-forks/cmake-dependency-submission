@@ -2,24 +2,21 @@ import * as core from '@actions/core'
 import * as github from '@actions/github'
 import {Snapshot, Manifest, submitSnapshot} from '@github/dependency-submission-toolkit'
 
-let message: string = "Hello World!";
-console.log(message);
-
 async function run(): Promise<void> {
-    core.startGroup(`📘 Reading input values`)
+    core.startGroup(`📘 Reading input values`);
 
     // Read input
-    const testingAction = core.getMultilineInput('testing-action')
+    const testingAction = core.getMultilineInput('testing-action');
 
     // Verify inputs are valid
     if (testingAction.length === 0) {
-        core.debug(`No 'testing-action' passed!`)
+        core.debug(`No 'testing-action' passed!`);
     }
 
     // Print debug
-    core.debug(` 'testing-action' value is: ${testingAction}`)
+    core.debug(` 'testing-action' value is: ${testingAction}`);
 
-    core.endGroup()
+    core.endGroup();
 }
 
 run()

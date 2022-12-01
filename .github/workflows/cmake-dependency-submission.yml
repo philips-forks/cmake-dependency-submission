@@ -16,4 +16,4 @@ jobs:
       - name: Dependency Submission
         uses: brenocq/cmake-dependency-submission@main
         with:
-          testing-action: "Hello world!"  
+          path: "example"  

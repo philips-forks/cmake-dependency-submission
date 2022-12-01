@@ -9,9 +9,9 @@ inputs:
     description: "GitHub Personal Access Token (PAT). Defaults to PAT provided by Action runner"
     required: false
     default: ${{ github.token }}
-  testing-action:
-    required: true
-    description: 'Testing my first action'
+  path:
+    required: false
+    description: 'Path to cmake project folder'
     default: ''
 runs:
   using: 'node16'
