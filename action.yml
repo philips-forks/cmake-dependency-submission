@@ -2,7 +2,7 @@ name: 'Cmake Dependency Submission'
 description: 'Calculates dependencies for a cmake project and submits the list to the Dependency Submission API'
 author: 'Breno Cunha Queiroz'
 branding:
-  icon: 'check-circle'  
+  icon: 'check-circle'
   color: 'blue'
 inputs:
   token:
