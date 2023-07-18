@@ -32,10 +32,12 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.main = exports.parseCMakeListsFiles = exports.parseCMakeListsFile = exports.extractFetchContentGitDetails = void 0;
+exports.main = exports.createBuildTarget = exports.parseDependencies = exports.parseNamespaceAndName = exports.parseCMakeListsFiles = exports.parseCMakeListsFile = exports.extractFetchContentGitDetails = void 0;
 const core = __importStar(require("@actions/core"));
 const fs_1 = require("fs");
 const glob_1 = require("glob");
+const packageurl_js_1 = require("packageurl-js");
+const dependency_submission_toolkit_1 = require("@github/dependency-submission-toolkit");
 function normalizeArgument(value) {
     return value.replace(/[")]+/g, '');
 }
@@ -72,8 +74,8 @@ function extractFetchContentGitDetails(content) {
     return pairs;
 }
 exports.extractFetchContentGitDetails = extractFetchContentGitDetails;
-function parseCMakeListsFile(path) {
-    const content = (0, fs_1.readFileSync)(path, 'utf-8');
+function parseCMakeListsFile(file) {
+    const content = (0, fs_1.readFileSync)(file, 'utf-8');
     return extractFetchContentGitDetails(content);
 }
 exports.parseCMakeListsFile = parseCMakeListsFile;
@@ -85,12 +87,57 @@ function parseCMakeListsFiles(files) {
     return dependencies;
 }
 exports.parseCMakeListsFiles = parseCMakeListsFiles;
+function parseNamespaceAndName(repo) {
+    const components = repo === null || repo === void 0 ? void 0 : repo.split('/').reverse();
+    if ((components === null || components === void 0 ? void 0 : components.length) && (components === null || components === void 0 ? void 0 : components.length) > 2) {
+        return [
+            encodeURIComponent(components[1]),
+            encodeURIComponent(components[0].replace('.git', ''))
+        ];
+    }
+    throw new Error(`expectation violated: Git URL '${repo}' has an invalid format`);
+}
+exports.parseNamespaceAndName = parseNamespaceAndName;
+function parseDependencies(cache, dependencies) {
+    return dependencies.map((git) => {
+        const [namespace, name] = parseNamespaceAndName(git.repo);
+        const purl = new packageurl_js_1.PackageURL('github', namespace, name, git.tag, null, null);
+        if (cache.hasPackage(purl))
+            return cache.package(purl);
+        return cache.package(purl);
+    });
+}
+exports.parseDependencies = parseDependencies;
+function createBuildTarget(name, dependencies) {
+    const cache = new dependency_submission_toolkit_1.PackageCache();
+    const packages = parseDependencies(cache, dependencies);
+    const buildTarget = new dependency_submission_toolkit_1.BuildTarget(name);
+    packages.forEach(p => {
+        buildTarget.addBuildDependency(p);
+    });
+    return buildTarget;
+}
+exports.createBuildTarget = createBuildTarget;
 function main() {
     return __awaiter(this, void 0, void 0, function* () {
-        const sourcePath = core.getInput('sourcePath');
-        const cmakeFiles = (0, glob_1.globSync)([sourcePath + '/**/CMakeLists.txt', sourcePath + '/**/*.cmake']);
-        const dependencies = parseCMakeListsFiles(cmakeFiles);
-        console.log(`dependencies: ${JSON.stringify(dependencies)}`);
+        try {
+            const sourcePath = core.getInput('sourcePath');
+            const cmakeFiles = (0, glob_1.globSync)([sourcePath + '/**/CMakeLists.txt', sourcePath + '/**/*.cmake']);
+            core.info(`Scanning dependencies for ${cmakeFiles.join(', ')}`);
+            const dependencies = parseCMakeListsFiles(cmakeFiles);
+            core.info(`Found dependencies: ${JSON.stringify(dependencies)}`);
+            const buildTarget = createBuildTarget('name', dependencies);
+            const snapshot = new dependency_submission_toolkit_1.Snapshot({
+                name: 'cmake-dependency-submission',
+                url: 'https://github.com/philips-forks/cmake-dependency-submission',
+                version: '0.1.0' // x-release-please-version
+            });
+            snapshot.addManifest(buildTarget);
+            (0, dependency_submission_toolkit_1.submitSnapshot)(snapshot);
+        }
+        catch (err) {
+            core.setFailed(`Action failed with ${err}`);
+        }
     });
 }
 exports.main = main;

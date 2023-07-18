@@ -1,11 +1,11 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const cmake_detector_1 = require("./cmake-detector");
-const fetchContentDataSimple = ['FetchContent_Declare(', 'GIT_REPOSITORY https://github.com/owner/repo', 'GIT_TAG v1.0.0', ')'];
-const fetchContentDataComment = ['FetchContent_Declare(', 'GIT_REPOSITORY https://github.com/owner/repo', 'GIT_TAG  v1.0.0 # release-1.0.0', ')'];
-const fetchContentDataQuoted = ['FetchContent_Declare(', 'GIT_REPOSITORY "https://github.com/owner/repo"', 'GIT_TAG "v1.0.0"', ')'];
-const expectedResult = { repo: 'https://github.com/owner/repo', tag: 'v1.0.0' };
 describe('extractFetchContentGitDetails', () => {
+    const fetchContentDataSimple = ['FetchContent_Declare(', 'GIT_REPOSITORY https://github.com/owner/repo', 'GIT_TAG v1.0.0', ')'];
+    const fetchContentDataComment = ['FetchContent_Declare(', 'GIT_REPOSITORY https://github.com/owner/repo', 'GIT_TAG  v1.0.0 # release-1.0.0', ')'];
+    const fetchContentDataQuoted = ['FetchContent_Declare(', 'GIT_REPOSITORY "https://github.com/owner/repo"', 'GIT_TAG "v1.0.0"', ')'];
+    const expectedResult = { repo: 'https://github.com/owner/repo', tag: 'v1.0.0' };
     test('Returns empty for no input', () => {
         expect((0, cmake_detector_1.extractFetchContentGitDetails)('')).toStrictEqual([]);
     });
@@ -32,5 +32,13 @@ describe('extractFetchContentGitDetails', () => {
     });
     test('Returns match for FetchContent_Declare with quoted arguments', () => {
         expect((0, cmake_detector_1.extractFetchContentGitDetails)(fetchContentDataQuoted.join('\n'))).toStrictEqual([expectedResult]);
+    });
+});
+describe('parseNamespaceAndName', () => {
+    test('Returns namespace and name for Git repository', () => {
+        expect((0, cmake_detector_1.parseNamespaceAndName)('https://github.com/foo/bar')).toStrictEqual(['foo', 'bar']);
+    });
+    test('Returns namespace and name for Git repository with .git postfix', () => {
+        expect((0, cmake_detector_1.parseNamespaceAndName)('https://github.com/foo/bar.git')).toStrictEqual(['foo', 'bar']);
     });
 });
