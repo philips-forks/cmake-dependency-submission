@@ -88,7 +88,7 @@ exports.parseCMakeListsFiles = parseCMakeListsFiles;
 function main() {
     return __awaiter(this, void 0, void 0, function* () {
         const sourcePath = core.getInput('sourcePath');
-        const cmakeFiles = (0, glob_1.globSync)([sourcePath + '**/CMakeLists.txt', sourcePath + '**/*.cmake']);
+        const cmakeFiles = (0, glob_1.globSync)([sourcePath + '/**/CMakeLists.txt', sourcePath + '/**/*.cmake']);
         const dependencies = parseCMakeListsFiles(cmakeFiles);
         console.log(`dependencies: ${JSON.stringify(dependencies)}`);
     });

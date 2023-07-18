@@ -66,7 +66,7 @@ export function parseCMakeListsFiles(files: string[]): Array<GitPair> {
 
 export async function main() {
     const sourcePath = core.getInput('sourcePath')
-    const cmakeFiles = globSync([sourcePath + '**/CMakeLists.txt', sourcePath + '**/*.cmake'])
+    const cmakeFiles = globSync([sourcePath + '/**/CMakeLists.txt', sourcePath + '/**/*.cmake'])
     const dependencies = parseCMakeListsFiles(cmakeFiles)
 
     console.log(`dependencies: ${ JSON.stringify(dependencies) }`);
