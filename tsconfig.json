@@ -12,5 +12,5 @@
         "noImplicitAny": true,
         "esModuleInterop": true
     },
-    "exclude": ["node_modules", "example", "src/__tests__"]
+    "exclude": ["node_modules", "example", "*.test.ts"]
 }

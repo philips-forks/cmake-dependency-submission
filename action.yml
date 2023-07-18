@@ -1,5 +1,5 @@
-name: 'Cmake Dependency Submission'
-description: 'Calculates dependencies for a cmake project and submits the list to the Dependency Submission API'
+name: 'CMake Dependency Submission'
+description: 'Calculates dependencies for a CMake project and submits the list to the GitHub Dependency Submission API'
 author: 'Breno Cunha Queiroz'
 branding:
   icon: 'check-circle'
@@ -9,10 +9,10 @@ inputs:
     description: "GitHub Personal Access Token (PAT). Defaults to PAT provided by Action runner"
     required: false
     default: ${{ github.token }}
-  path:
+  cmakeListsTxtPath:
+    default: "${{ github.workspace }}/CMakeLists.txt"
     required: false
-    description: 'Path to cmake project folder'
-    default: ''
+    description: "Path to CMakeLists.txt"
 runs:
   using: 'node16'
   main: 'dist/index.js'
