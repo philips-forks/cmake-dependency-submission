@@ -77,8 +77,8 @@ export function parseNamespaceAndName(repo: string | undefined): [string, string
 
     if (components?.length && components?.length > 2) {
         return [
-            encodeURIComponent(components[1]),
-            encodeURIComponent(components[0].replace('.git', ''))
+            encodeURIComponent(components[1].toLowerCase()),
+            encodeURIComponent(components[0].replace('.git', '').toLowerCase())
         ]
     }
 
@@ -91,9 +91,6 @@ export function parseDependencies(cache: PackageCache, dependencies: Array<GitPa
     return dependencies.map((git) => {
         const [namespace, name] = parseNamespaceAndName(git.repo)
         const purl = new PackageURL('github', namespace, name, git.tag, null, null)
-
-        if (cache.hasPackage(purl))
-            return cache.package(purl)
 
         return cache.package(purl)
     })
