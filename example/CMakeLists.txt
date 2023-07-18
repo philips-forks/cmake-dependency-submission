@@ -14,7 +14,14 @@ else()
         GIT_TAG "7482de6071d21db77a7236155da44c172a7f6c9e"
         GIT_PROGRESS TRUE
     )
-    FetchContent_MakeAvailable(glfw)
+
+    FetchContent_Declare(
+        mbedtls
+        GIT_REPOSITORY https://github.com/Mbed-TLS/mbedtls
+        GIT_TAG 2297157dd6236e4a5c2f46c84c401599ef639cf5
+        GIT_PROGRESS TRUE
+    )
+    FetchContent_MakeAvailable(glfw mbedtls)
 endif()
 
 # Create cmake-example executable
