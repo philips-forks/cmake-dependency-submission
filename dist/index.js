@@ -1,7 +1,7 @@
 require('./sourcemap-register.js');/******/ (() => { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ({
 
-/***/ 283:
+/***/ 15:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
 "use strict";
@@ -39,24 +39,49 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.main = exports.parseCMakeListsFile = exports.extractFetchContentGitDetails = void 0;
 const core = __importStar(__nccwpck_require__(186));
-let message = "Hello World!";
-console.log(message);
-function run() {
-    return __awaiter(this, void 0, void 0, function* () {
-        core.startGroup(`📘 Reading input values`);
-        // Read input
-        const testingAction = core.getMultilineInput('testing-action');
-        // Verify inputs are valid
-        if (testingAction.length === 0) {
-            core.debug(`No 'testing-action' passed!`);
+const fs_1 = __nccwpck_require__(147);
+function extractFetchContentGitDetails(content) {
+    let pairs = [];
+    let readingFetch = false;
+    let pair = { repo: undefined, tag: undefined };
+    content.split(/\r?\n/).forEach((line) => {
+        if (line.includes('FetchContent_Declare')) {
+            readingFetch = true;
         }
-        // Print debug
-        core.debug(` 'testing-action' value is: ${testingAction}`);
-        core.endGroup();
+        if (readingFetch) {
+            if (line.includes('GIT_REPOSITORY')) {
+                pair.repo = line.replace('GIT_REPOSITORY', '').trim();
+            }
+            if (line.includes('GIT_TAG')) {
+                pair.tag = line.replace('GIT_TAG', '').trim();
+            }
+            if (line.includes(')')) {
+                readingFetch = false;
+                if (pair.repo && pair.tag) {
+                    pairs.push(Object.assign({}, pair));
+                    pair = { repo: undefined, tag: undefined };
+                }
+            }
+        }
+    });
+    return pairs;
+}
+exports.extractFetchContentGitDetails = extractFetchContentGitDetails;
+function parseCMakeListsFile(path) {
+    const content = (0, fs_1.readFileSync)(path, 'utf-8');
+    const dependencies = extractFetchContentGitDetails(content);
+    console.log(`dependencies: ${JSON.stringify(dependencies)}`);
+}
+exports.parseCMakeListsFile = parseCMakeListsFile;
+function main() {
+    return __awaiter(this, void 0, void 0, function* () {
+        const cmakeListsTxtPath = core.getInput('cmakeListsTxtPath');
+        parseCMakeListsFile(cmakeListsTxtPath);
     });
 }
-run();
+exports.main = main;
 
 
 /***/ }),
@@ -2874,13 +2899,19 @@ module.exports = require("util");
 /******/ 	if (typeof __nccwpck_require__ !== 'undefined') __nccwpck_require__.ab = __dirname + "/";
 /******/ 	
 /************************************************************************/
-/******/ 	
-/******/ 	// startup
-/******/ 	// Load entry module and return exports
-/******/ 	// This entry module is referenced by other modules so it can't be inlined
-/******/ 	var __webpack_exports__ = __nccwpck_require__(283);
-/******/ 	module.exports = __webpack_exports__;
-/******/ 	
+var __webpack_exports__ = {};
+// This entry need to be wrapped in an IIFE because it need to be in strict mode.
+(() => {
+"use strict";
+var exports = __webpack_exports__;
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+const cmake_detector_1 = __nccwpck_require__(15);
+(0, cmake_detector_1.main)();
+
+})();
+
+module.exports = __webpack_exports__;
 /******/ })()
 ;
 //# sourceMappingURL=index.js.map
