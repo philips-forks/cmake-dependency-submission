@@ -14,12 +14,17 @@ export function extractFetchContentGitDetails(content: string): Array<GitPair> {
         }
 
         if (readingFetch) {
-            if (line.includes('GIT_REPOSITORY')) {
-                pair.repo = line.replace('GIT_REPOSITORY', '').trim();
+            const gitRepositoryKeyword = 'GIT_REPOSITORY'
+            const gitTagKeword = 'GIT_TAG'
+
+            if (line.includes(gitRepositoryKeyword)) {
+                const array = line.slice(line.indexOf(gitRepositoryKeyword)).split(/\s+/);
+                pair.repo = array[array.findIndex((value) => value == gitRepositoryKeyword) + 1].replace(')', '')
             }
 
-            if (line.includes('GIT_TAG')) {
-                pair.tag = line.replace('GIT_TAG', '').trim();
+            if (line.includes(gitTagKeword)) {
+                const array = line.slice(line.indexOf(gitTagKeword)).split(/\s+/);
+                pair.tag = array[array.findIndex((value) => value == gitTagKeword) + 1].replace(')', '')
             }
 
             if (line.includes(')')) {
