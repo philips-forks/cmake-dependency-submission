@@ -3,6 +3,19 @@ import { readFileSync } from 'fs';
 
 type GitPair = { repo: string | undefined, tag: string | undefined }
 
+function normalizeArgument(value: string): string {
+    [')', '\"'].forEach(element => {
+        value = value.replaceAll(element, '')
+    });
+
+    return value
+}
+
+function getArgumentForKeyword(keyword: string, line: string): string {
+    const array = line.slice(line.indexOf(keyword)).split(/\s+/);
+    return normalizeArgument(array[array.findIndex((value) => value == keyword) + 1])
+}
+
 export function extractFetchContentGitDetails(content: string): Array<GitPair> {
     let pairs: Array<GitPair> = []
     let readingFetch: boolean = false
@@ -18,13 +31,11 @@ export function extractFetchContentGitDetails(content: string): Array<GitPair> {
             const gitTagKeword = 'GIT_TAG'
 
             if (line.includes(gitRepositoryKeyword)) {
-                const array = line.slice(line.indexOf(gitRepositoryKeyword)).split(/\s+/);
-                pair.repo = array[array.findIndex((value) => value == gitRepositoryKeyword) + 1].replace(')', '')
+                pair.repo = getArgumentForKeyword(gitRepositoryKeyword, line)
             }
 
             if (line.includes(gitTagKeword)) {
-                const array = line.slice(line.indexOf(gitTagKeword)).split(/\s+/);
-                pair.tag = array[array.findIndex((value) => value == gitTagKeword) + 1].replace(')', '')
+                pair.tag = getArgumentForKeyword(gitTagKeword, line)
             }
 
             if (line.includes(')')) {

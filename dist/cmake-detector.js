@@ -35,6 +35,16 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.main = exports.parseCMakeListsFile = exports.extractFetchContentGitDetails = void 0;
 const core = __importStar(require("@actions/core"));
 const fs_1 = require("fs");
+function normalizeArgument(value) {
+    [')', '\"'].forEach(element => {
+        value = value.replaceAll(element, '');
+    });
+    return value;
+}
+function getArgumentForKeyword(keyword, line) {
+    const array = line.slice(line.indexOf(keyword)).split(/\s+/);
+    return normalizeArgument(array[array.findIndex((value) => value == keyword) + 1]);
+}
 function extractFetchContentGitDetails(content) {
     let pairs = [];
     let readingFetch = false;
@@ -44,11 +54,13 @@ function extractFetchContentGitDetails(content) {
             readingFetch = true;
         }
         if (readingFetch) {
-            if (line.includes('GIT_REPOSITORY')) {
-                pair.repo = line.replace('GIT_REPOSITORY', '').trim();
+            const gitRepositoryKeyword = 'GIT_REPOSITORY';
+            const gitTagKeword = 'GIT_TAG';
+            if (line.includes(gitRepositoryKeyword)) {
+                pair.repo = getArgumentForKeyword(gitRepositoryKeyword, line);
             }
-            if (line.includes('GIT_TAG')) {
-                pair.tag = line.replace('GIT_TAG', '').trim();
+            if (line.includes(gitTagKeword)) {
+                pair.tag = getArgumentForKeyword(gitTagKeword, line);
             }
             if (line.includes(')')) {
                 readingFetch = false;

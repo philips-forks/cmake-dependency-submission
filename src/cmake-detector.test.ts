@@ -2,6 +2,7 @@ import { extractFetchContentGitDetails } from './cmake-detector'
 
 const fetchContentDataSimple = ['FetchContent_Declare(', 'GIT_REPOSITORY https://github.com/owner/repo', 'GIT_TAG v1.0.0', ')']
 const fetchContentDataComment = ['FetchContent_Declare(', 'GIT_REPOSITORY https://github.com/owner/repo', 'GIT_TAG  v1.0.0 # release-1.0.0', ')']
+const fetchContentDataQuoted = ['FetchContent_Declare(', 'GIT_REPOSITORY "https://github.com/owner/repo"', 'GIT_TAG "v1.0.0"', ')']
 const expectedResult = { repo: 'https://github.com/owner/repo', tag: 'v1.0.0' }
 
 describe('extractFetchContentGitDetails', () => {
@@ -35,5 +36,9 @@ describe('extractFetchContentGitDetails', () => {
 
   test('Returns match for FetchContent_Declare with comments', () => {
     expect(extractFetchContentGitDetails(fetchContentDataComment.join('\n'))).toStrictEqual([expectedResult])
+  })
+
+  test('Returns match for FetchContent_Declare with quoted arguments', () => {
+    expect(extractFetchContentGitDetails(fetchContentDataQuoted.join('\n'))).toStrictEqual([expectedResult])
   })
 })
