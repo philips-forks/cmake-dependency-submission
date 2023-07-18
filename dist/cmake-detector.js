@@ -36,10 +36,7 @@ exports.main = exports.parseCMakeListsFile = exports.extractFetchContentGitDetai
 const core = __importStar(require("@actions/core"));
 const fs_1 = require("fs");
 function normalizeArgument(value) {
-    [')', '\"'].forEach(element => {
-        value = value.replaceAll(element, '');
-    });
-    return value;
+    return value.replace(/[")]+/g, '');
 }
 function getArgumentForKeyword(keyword, line) {
     const array = line.slice(line.indexOf(keyword)).split(/\s+/);

@@ -1,7 +1,7 @@
 {
     "compilerOptions": {
         "lib": [
-            "es2022",
+            "es2019",
             "dom"
         ],
         "target": "es6",

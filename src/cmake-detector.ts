@@ -4,11 +4,7 @@ import { readFileSync } from 'fs';
 type GitPair = { repo: string | undefined, tag: string | undefined }
 
 function normalizeArgument(value: string): string {
-    [')', '\"'].forEach(element => {
-        value = value.replaceAll(element, '')
-    });
-
-    return value
+    return value.replace(/[")]+/g, '')
 }
 
 function getArgumentForKeyword(keyword: string, line: string): string {
