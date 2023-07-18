@@ -32,9 +32,10 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.main = exports.parseCMakeListsFile = exports.extractFetchContentGitDetails = void 0;
+exports.main = exports.parseCMakeListsFiles = exports.parseCMakeListsFile = exports.extractFetchContentGitDetails = void 0;
 const core = __importStar(require("@actions/core"));
 const fs_1 = require("fs");
+const glob_1 = require("glob");
 function normalizeArgument(value) {
     return value.replace(/[")]+/g, '');
 }
@@ -73,14 +74,23 @@ function extractFetchContentGitDetails(content) {
 exports.extractFetchContentGitDetails = extractFetchContentGitDetails;
 function parseCMakeListsFile(path) {
     const content = (0, fs_1.readFileSync)(path, 'utf-8');
-    const dependencies = extractFetchContentGitDetails(content);
-    console.log(`dependencies: ${JSON.stringify(dependencies)}`);
+    return extractFetchContentGitDetails(content);
 }
 exports.parseCMakeListsFile = parseCMakeListsFile;
+function parseCMakeListsFiles(files) {
+    let dependencies = [];
+    files.forEach(file => {
+        dependencies = dependencies.concat(parseCMakeListsFile(file));
+    });
+    return dependencies;
+}
+exports.parseCMakeListsFiles = parseCMakeListsFiles;
 function main() {
     return __awaiter(this, void 0, void 0, function* () {
-        const cmakeListsTxtPath = core.getInput('cmakeListsTxtPath');
-        parseCMakeListsFile(cmakeListsTxtPath);
+        const sourcePath = core.getInput('sourcePath');
+        const cmakeFiles = (0, glob_1.globSync)([sourcePath + '**/CMakeLists.txt', sourcePath + '**/*.cmake']);
+        const dependencies = parseCMakeListsFiles(cmakeFiles);
+        console.log(`dependencies: ${JSON.stringify(dependencies)}`);
     });
 }
 exports.main = main;

@@ -1,5 +1,6 @@
 import * as core from '@actions/core'
 import { readFileSync } from 'fs';
+import { globSync } from 'glob'
 
 type GitPair = { repo: string | undefined, tag: string | undefined }
 
@@ -48,14 +49,25 @@ export function extractFetchContentGitDetails(content: string): Array<GitPair> {
     return pairs
 }
 
-export function parseCMakeListsFile(path: string) {
+export function parseCMakeListsFile(path: string): Array<GitPair> {
     const content = readFileSync(path, 'utf-8');
-    const dependencies = extractFetchContentGitDetails(content);
+    return extractFetchContentGitDetails(content);
+}
 
-    console.log(`dependencies: ${ JSON.stringify(dependencies) }`);
+export function parseCMakeListsFiles(files: string[]): Array<GitPair> {
+    let dependencies: Array<GitPair> = []
+
+    files.forEach(file => {
+        dependencies = dependencies.concat(parseCMakeListsFile(file))
+    });
+
+    return dependencies
 }
 
 export async function main() {
-    const cmakeListsTxtPath = core.getInput('cmakeListsTxtPath')
-    parseCMakeListsFile(cmakeListsTxtPath)
+    const sourcePath = core.getInput('sourcePath')
+    const cmakeFiles = globSync([sourcePath + '**/CMakeLists.txt', sourcePath + '**/*.cmake'])
+    const dependencies = parseCMakeListsFiles(cmakeFiles)
+
+    console.log(`dependencies: ${ JSON.stringify(dependencies) }`);
 }

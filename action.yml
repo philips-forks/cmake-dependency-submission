@@ -7,12 +7,12 @@ branding:
 inputs:
   token:
     description: "GitHub Personal Access Token (PAT). Defaults to PAT provided by Action runner"
-    required: false
     default: ${{ github.token }}
-  cmakeListsTxtPath:
-    default: "${{ github.workspace }}/CMakeLists.txt"
     required: false
-    description: "Path to CMakeLists.txt"
+  sourcePath:
+    description: "Path to source tree containing CMakeLists.txt and *.cmake files"
+    default: "${{ github.workspace }}"
+    required: false
 runs:
   using: 'node16'
   main: 'dist/index.js'
