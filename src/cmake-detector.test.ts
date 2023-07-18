@@ -1,11 +1,11 @@
-import { extractFetchContentGitDetails } from './cmake-detector'
-
-const fetchContentDataSimple = ['FetchContent_Declare(', 'GIT_REPOSITORY https://github.com/owner/repo', 'GIT_TAG v1.0.0', ')']
-const fetchContentDataComment = ['FetchContent_Declare(', 'GIT_REPOSITORY https://github.com/owner/repo', 'GIT_TAG  v1.0.0 # release-1.0.0', ')']
-const fetchContentDataQuoted = ['FetchContent_Declare(', 'GIT_REPOSITORY "https://github.com/owner/repo"', 'GIT_TAG "v1.0.0"', ')']
-const expectedResult = { repo: 'https://github.com/owner/repo', tag: 'v1.0.0' }
+import { extractFetchContentGitDetails, parseNamespaceAndName } from './cmake-detector'
 
 describe('extractFetchContentGitDetails', () => {
+  const fetchContentDataSimple = ['FetchContent_Declare(', 'GIT_REPOSITORY https://github.com/owner/repo', 'GIT_TAG v1.0.0', ')']
+  const fetchContentDataComment = ['FetchContent_Declare(', 'GIT_REPOSITORY https://github.com/owner/repo', 'GIT_TAG  v1.0.0 # release-1.0.0', ')']
+  const fetchContentDataQuoted = ['FetchContent_Declare(', 'GIT_REPOSITORY "https://github.com/owner/repo"', 'GIT_TAG "v1.0.0"', ')']
+  const expectedResult = { repo: 'https://github.com/owner/repo', tag: 'v1.0.0' }
+
   test('Returns empty for no input', () => {
     expect(extractFetchContentGitDetails('')).toStrictEqual([])
   })
@@ -40,5 +40,15 @@ describe('extractFetchContentGitDetails', () => {
 
   test('Returns match for FetchContent_Declare with quoted arguments', () => {
     expect(extractFetchContentGitDetails(fetchContentDataQuoted.join('\n'))).toStrictEqual([expectedResult])
+  })
+})
+
+describe('parseNamespaceAndName', () => {
+  test('Returns namespace and name for Git repository', () => {
+    expect(parseNamespaceAndName('https://github.com/foo/bar')).toStrictEqual(['foo', 'bar'])
+  })
+
+  test('Returns namespace and name for Git repository with .git postfix', () => {
+    expect(parseNamespaceAndName('https://github.com/foo/bar.git')).toStrictEqual(['foo', 'bar'])
   })
 })
