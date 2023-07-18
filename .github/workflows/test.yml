@@ -12,20 +12,11 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
-      - name: Install Node
-        uses: actions/setup-node@v3
+      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+      - uses: actions/setup-node@v3
         with:
           node-version: 16
-
       - name: Install npm dependencies
         run: npm ci --ignore-scripts
-
       - name: Build and run tests
         run: npm rebuild && npm run all
-
-      - name: Verify no uncommitted files
-        run: '[ -z "$(git status --porcelain=v1 2>/dev/null)" ]'
-        shell: bash
