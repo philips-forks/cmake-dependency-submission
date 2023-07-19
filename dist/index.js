@@ -146,8 +146,8 @@ function getCMakeListsFromFileApi(buildPath) {
             return [];
         }
         let cmakeFiles = [];
-        const resultFile = (0, glob_1.globSync)(cmakeApiPath + '/reply/cmakeFile-v1-*.json');
-        resultFile.forEach(file => {
+        const resultFiles = (0, glob_1.globSync)(cmakeApiPath + '/reply/cmakeFiles-v1-*.json');
+        resultFiles.forEach(file => {
             const jsonResult = JSON.parse((0, fs_1.readFileSync)(file).toString());
             for (const input of jsonResult.inputs)
                 if (!input.isCMake)

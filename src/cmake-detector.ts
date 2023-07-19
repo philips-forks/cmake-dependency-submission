@@ -140,8 +140,8 @@ export async function getCMakeListsFromFileApi(buildPath: string): Promise<strin
     }
 
     let cmakeFiles: Array<string> = []
-    const resultFile = globSync(cmakeApiPath + '/reply/cmakeFile-v1-*.json')
-    resultFile.forEach(file => {
+    const resultFiles = globSync(cmakeApiPath + '/reply/cmakeFiles-v1-*.json')
+    resultFiles.forEach(file => {
         const jsonResult = JSON.parse(readFileSync(file).toString())
 
         for (const input of jsonResult.inputs)
