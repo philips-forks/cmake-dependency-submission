@@ -124,7 +124,7 @@ export function parseCMakeListsFiles(files: string[]): Array<BuildTarget> {
 export async function getCMakeListsFromFileApi(buildPath: string): Promise<string[]> {
     const cmakeApiPath = buildPath + '/.cmake/api/v1'
 
-    mkdirSync(cmakeApiPath + '/query')
+    mkdirSync(cmakeApiPath + '/query', { recursive: true })
     writeFileSync(cmakeApiPath + '/query/cmakeFiles-v1', '')
 
     const cmakeCommand = await exec.getExecOutput(

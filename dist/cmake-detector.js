@@ -130,7 +130,7 @@ exports.parseCMakeListsFiles = parseCMakeListsFiles;
 function getCMakeListsFromFileApi(buildPath) {
     return __awaiter(this, void 0, void 0, function* () {
         const cmakeApiPath = buildPath + '/.cmake/api/v1';
-        (0, fs_1.mkdirSync)(cmakeApiPath + '/query');
+        (0, fs_1.mkdirSync)(cmakeApiPath + '/query', { recursive: true });
         (0, fs_1.writeFileSync)(cmakeApiPath + '/query/cmakeFiles-v1', '');
         const cmakeCommand = yield exec.getExecOutput('cmake', ['.'], { cwd: buildPath });
         if (cmakeCommand.exitCode !== 0) {
