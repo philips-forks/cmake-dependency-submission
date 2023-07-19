@@ -1,4 +1,4 @@
-import { extractFetchContentGitDetails, parseNamespaceAndName } from './cmake-detector'
+import { extractFetchContentGitDetails, parseNamespaceAndName, parsePackageType } from './cmake-detector'
 
 describe('extractFetchContentGitDetails', () => {
   const fetchContentDataSimple = ['FetchContent_Declare(', 'GIT_REPOSITORY https://github.com/owner/repo', 'GIT_TAG v1.0.0', ')']
@@ -50,5 +50,23 @@ describe('parseNamespaceAndName', () => {
 
   test('Returns namespace and name for Git repository with .git postfix', () => {
     expect(parseNamespaceAndName('https://github.com/foo/bar.git')).toStrictEqual(['foo', 'bar'])
+  })
+
+  test('Throws exception for invalid GitHub URL', () => {
+    expect(() => { parseNamespaceAndName('https://github.com/foo/') }).toThrowError()
+  })
+})
+
+describe('parsePackageType', () => {
+  test('Returns correct PURL type for GitHub URL', () => {
+    expect(parsePackageType('https://github.com/foo/bar')).toBe('github')
+  })
+
+  test('Returns correct PURL type for BitBucket URL', () => {
+    expect(parsePackageType('https://bitbucket.com/foo/bar')).toBe('bitbucket')
+  })
+
+  test('Returns correct PURL type for other URL', () => {
+    expect(parsePackageType('https://other.com/foo/bar')).toBe('generic')
   })
 })

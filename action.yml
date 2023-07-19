@@ -13,6 +13,10 @@ inputs:
     description: "Path to source tree containing CMakeLists.txt and *.cmake files"
     default: "${{ github.workspace }}"
     required: false
+  buildTargetName:
+    description: "Name of the build target for which dependencies are submitted"
+    default: "${{ github.repository }}"
+    required: false
 runs:
   using: 'node16'
   main: 'dist/index.js'

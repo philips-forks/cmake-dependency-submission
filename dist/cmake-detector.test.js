@@ -41,4 +41,18 @@ describe('parseNamespaceAndName', () => {
     test('Returns namespace and name for Git repository with .git postfix', () => {
         expect((0, cmake_detector_1.parseNamespaceAndName)('https://github.com/foo/bar.git')).toStrictEqual(['foo', 'bar']);
     });
+    test('Throws exception for invalid GitHub URL', () => {
+        expect(() => { (0, cmake_detector_1.parseNamespaceAndName)('https://github.com/foo/'); }).toThrowError();
+    });
+});
+describe('parsePackageType', () => {
+    test('Returns correct PURL type for GitHub URL', () => {
+        expect((0, cmake_detector_1.parsePackageType)('https://github.com/foo/bar')).toBe('github');
+    });
+    test('Returns correct PURL type for BitBucket URL', () => {
+        expect((0, cmake_detector_1.parsePackageType)('https://bitbucket.com/foo/bar')).toBe('bitbucket');
+    });
+    test('Returns correct PURL type for other URL', () => {
+        expect((0, cmake_detector_1.parsePackageType)('https://other.com/foo/bar')).toBe('generic');
+    });
 });

@@ -39,41 +39,41 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.main = exports.createBuildTarget = exports.parseDependencies = exports.parseNamespaceAndName = exports.parseCMakeListsFiles = exports.parseCMakeListsFile = exports.extractFetchContentGitDetails = void 0;
+exports.main = exports.createBuildTarget = exports.dependenciesToPackages = exports.parsePackageType = exports.parseNamespaceAndName = exports.parseCMakeListsFiles = exports.extractFetchContentGitDetails = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const fs_1 = __nccwpck_require__(7147);
 const glob_1 = __nccwpck_require__(3277);
 const packageurl_js_1 = __nccwpck_require__(8915);
+const url_1 = __nccwpck_require__(7310);
 const dependency_submission_toolkit_1 = __nccwpck_require__(9810);
-function normalizeArgument(value) {
+function normalizeCMakeArgument(value) {
     return value.replace(/[")]+/g, '');
 }
 function getArgumentForKeyword(keyword, line) {
     const array = line.slice(line.indexOf(keyword)).split(/\s+/);
-    return normalizeArgument(array[array.findIndex((value) => value == keyword) + 1]);
+    return normalizeCMakeArgument(array[array.findIndex((value) => value == keyword) + 1]);
 }
 function extractFetchContentGitDetails(content) {
     let pairs = [];
     let readingFetch = false;
-    let pair = { repo: undefined, tag: undefined };
+    let repo = undefined;
+    let tag = undefined;
     content.split(/\r?\n/).forEach((line) => {
-        if (line.includes('FetchContent_Declare')) {
+        if (line.includes('FetchContent_Declare'))
             readingFetch = true;
-        }
         if (readingFetch) {
             const gitRepositoryKeyword = 'GIT_REPOSITORY';
             const gitTagKeword = 'GIT_TAG';
-            if (line.includes(gitRepositoryKeyword)) {
-                pair.repo = getArgumentForKeyword(gitRepositoryKeyword, line);
-            }
-            if (line.includes(gitTagKeword)) {
-                pair.tag = getArgumentForKeyword(gitTagKeword, line);
-            }
+            if (line.includes(gitRepositoryKeyword))
+                repo = getArgumentForKeyword(gitRepositoryKeyword, line);
+            if (line.includes(gitTagKeword))
+                tag = getArgumentForKeyword(gitTagKeword, line);
             if (line.includes(')')) {
                 readingFetch = false;
-                if (pair.repo && pair.tag) {
-                    pairs.push(Object.assign({}, pair));
-                    pair = { repo: undefined, tag: undefined };
+                if (repo && tag) {
+                    pairs.push({ repo: repo, tag: tag });
+                    repo = undefined;
+                    tag = undefined;
                 }
             }
         }
@@ -81,22 +81,19 @@ function extractFetchContentGitDetails(content) {
     return pairs;
 }
 exports.extractFetchContentGitDetails = extractFetchContentGitDetails;
-function parseCMakeListsFile(file) {
-    const content = (0, fs_1.readFileSync)(file, 'utf-8');
-    return extractFetchContentGitDetails(content);
-}
-exports.parseCMakeListsFile = parseCMakeListsFile;
 function parseCMakeListsFiles(files) {
     let dependencies = [];
     files.forEach(file => {
-        dependencies = dependencies.concat(parseCMakeListsFile(file));
+        const content = (0, fs_1.readFileSync)(file, 'utf-8');
+        dependencies = dependencies.concat(extractFetchContentGitDetails(content));
     });
     return dependencies;
 }
 exports.parseCMakeListsFiles = parseCMakeListsFiles;
 function parseNamespaceAndName(repo) {
-    const components = repo === null || repo === void 0 ? void 0 : repo.split('/').reverse();
-    if ((components === null || components === void 0 ? void 0 : components.length) && (components === null || components === void 0 ? void 0 : components.length) > 2) {
+    const url = new url_1.URL(repo);
+    const components = url.pathname.split('/').reverse();
+    if (components.length > 2 && components[0].length > 0) {
         return [
             encodeURIComponent(components[1].toLowerCase()),
             encodeURIComponent(components[0].replace('.git', '').toLowerCase())
@@ -105,17 +102,27 @@ function parseNamespaceAndName(repo) {
     throw new Error(`expectation violated: Git URL '${repo}' has an invalid format`);
 }
 exports.parseNamespaceAndName = parseNamespaceAndName;
-function parseDependencies(cache, dependencies) {
+function parsePackageType(repo) {
+    const purlTypes = ['github', 'bitbucket']; // From: https://github.com/package-url/purl-spec/blob/master/PURL-TYPES.rst
+    const url = new url_1.URL(repo);
+    for (const type of purlTypes)
+        if (url.hostname.includes(type))
+            return type;
+    return 'generic';
+}
+exports.parsePackageType = parsePackageType;
+function dependenciesToPackages(cache, dependencies) {
     return dependencies.map((git) => {
         const [namespace, name] = parseNamespaceAndName(git.repo);
-        const purl = new packageurl_js_1.PackageURL('github', namespace, name, git.tag, null, null);
+        const type = parsePackageType(git.repo);
+        const purl = new packageurl_js_1.PackageURL(type, namespace, name, git.tag, null, null);
         return cache.package(purl);
     });
 }
-exports.parseDependencies = parseDependencies;
+exports.dependenciesToPackages = dependenciesToPackages;
 function createBuildTarget(name, dependencies) {
     const cache = new dependency_submission_toolkit_1.PackageCache();
-    const packages = parseDependencies(cache, dependencies);
+    const packages = dependenciesToPackages(cache, dependencies);
     const buildTarget = new dependency_submission_toolkit_1.BuildTarget(name);
     packages.forEach(p => {
         buildTarget.addBuildDependency(p);
@@ -127,11 +134,14 @@ function main() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             const sourcePath = core.getInput('sourcePath');
+            const buildTargetName = core.getInput('buildTargetName');
             const cmakeFiles = (0, glob_1.globSync)([sourcePath + '/**/CMakeLists.txt', sourcePath + '/**/*.cmake']);
+            core.startGroup('Parsing CMake files...');
             core.info(`Scanning dependencies for ${cmakeFiles.join(', ')}`);
             const dependencies = parseCMakeListsFiles(cmakeFiles);
             core.info(`Found dependencies: ${JSON.stringify(dependencies)}`);
-            const buildTarget = createBuildTarget('name', dependencies);
+            core.endGroup();
+            const buildTarget = createBuildTarget(buildTargetName, dependencies);
             const snapshot = new dependency_submission_toolkit_1.Snapshot({
                 name: 'cmake-dependency-submission',
                 url: 'https://github.com/philips-forks/cmake-dependency-submission',
