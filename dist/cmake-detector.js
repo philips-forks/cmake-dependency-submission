@@ -103,7 +103,7 @@ function parsePackageType(repo) {
     for (const type of purlTypes)
         if (url.hostname.includes(type))
             if (type == 'github')
-                return 'generic';
+                return 'actions';
             else
                 return type;
     return 'generic';
