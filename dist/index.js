@@ -44,6 +44,7 @@ const core = __importStar(__nccwpck_require__(2186));
 const fs_1 = __nccwpck_require__(7147);
 const glob_1 = __nccwpck_require__(3277);
 const packageurl_js_1 = __nccwpck_require__(8915);
+const path_1 = __nccwpck_require__(1017);
 const url_1 = __nccwpck_require__(7310);
 const dependency_submission_toolkit_1 = __nccwpck_require__(9810);
 function normalizeCMakeArgument(value) {
@@ -82,12 +83,13 @@ function extractFetchContentGitDetails(content) {
 }
 exports.extractFetchContentGitDetails = extractFetchContentGitDetails;
 function parseCMakeListsFiles(files) {
-    let dependencies = [];
+    let buildTargets = [];
     files.forEach(file => {
         const content = (0, fs_1.readFileSync)(file, 'utf-8');
-        dependencies = dependencies.concat(extractFetchContentGitDetails(content));
+        const dependencies = extractFetchContentGitDetails(content);
+        buildTargets = buildTargets.concat(createBuildTarget((0, path_1.relative)(core.getInput('sourcePath'), file), dependencies));
     });
-    return dependencies;
+    return buildTargets;
 }
 exports.parseCMakeListsFiles = parseCMakeListsFiles;
 function parseNamespaceAndName(repo) {
@@ -123,7 +125,7 @@ exports.dependenciesToPackages = dependenciesToPackages;
 function createBuildTarget(name, dependencies) {
     const cache = new dependency_submission_toolkit_1.PackageCache();
     const packages = dependenciesToPackages(cache, dependencies);
-    const buildTarget = new dependency_submission_toolkit_1.BuildTarget(name, core.getInput('sourcePath') + '/example/CMakeLists.txt');
+    const buildTarget = new dependency_submission_toolkit_1.BuildTarget(name, name);
     packages.forEach(p => {
         buildTarget.addBuildDependency(p);
     });
@@ -134,21 +136,20 @@ function main() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             const sourcePath = core.getInput('sourcePath');
-            const buildTargetName = core.getInput('buildTargetName');
             const cmakeFiles = (0, glob_1.globSync)([sourcePath + '/**/CMakeLists.txt', sourcePath + '/**/*.cmake']);
             core.startGroup('Parsing CMake files...');
             core.info(`Scanning dependencies for ${cmakeFiles.join(', ')}`);
-            const dependencies = parseCMakeListsFiles(cmakeFiles);
-            core.info(`Found dependencies: ${JSON.stringify(dependencies)}`);
+            const buildTargets = parseCMakeListsFiles(cmakeFiles);
             core.endGroup();
             core.startGroup('Submitting dependencies...');
-            const buildTarget = createBuildTarget(buildTargetName, dependencies);
             const snapshot = new dependency_submission_toolkit_1.Snapshot({
                 name: 'cmake-dependency-submission',
                 url: 'https://github.com/philips-forks/cmake-dependency-submission',
                 version: '0.1.0' // x-release-please-version
             });
-            snapshot.addManifest(buildTarget);
+            buildTargets.forEach(buildTarget => {
+                snapshot.addManifest(buildTarget);
+            });
             (0, dependency_submission_toolkit_1.submitSnapshot)(snapshot);
             core.endGroup();
         }

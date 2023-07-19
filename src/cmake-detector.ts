@@ -2,6 +2,7 @@ import * as core from '@actions/core'
 import { readFileSync } from 'fs';
 import { globSync } from 'glob'
 import { PackageURL } from 'packageurl-js'
+import { relative } from 'path'
 import { URL } from 'url'
 import {
     PackageCache,
@@ -57,15 +58,16 @@ export function extractFetchContentGitDetails(content: string): Array<GitPair> {
     return pairs
 }
 
-export function parseCMakeListsFiles(files: string[]): Array<GitPair> {
-    let dependencies: Array<GitPair> = []
+export function parseCMakeListsFiles(files: string[]): Array<BuildTarget> {
+    let buildTargets: Array<BuildTarget> = []
 
     files.forEach(file => {
         const content = readFileSync(file, 'utf-8');
-        dependencies = dependencies.concat(extractFetchContentGitDetails(content))
+        const dependencies = extractFetchContentGitDetails(content)
+        buildTargets = buildTargets.concat(createBuildTarget(relative(core.getInput('sourcePath'), file), dependencies))
     });
 
-    return dependencies
+    return buildTargets
 }
 
 export function parseNamespaceAndName(repo: string): [string, string] {
@@ -108,7 +110,7 @@ export function dependenciesToPackages(cache: PackageCache, dependencies: Array<
 export function createBuildTarget(name: string, dependencies: Array<GitPair>): BuildTarget {
     const cache = new PackageCache()
     const packages = dependenciesToPackages(cache, dependencies)
-    const buildTarget = new BuildTarget(name, core.getInput('sourcePath') + '/example/CMakeLists.txt')
+    const buildTarget = new BuildTarget(name, name)
 
     packages.forEach(p => {
         buildTarget.addBuildDependency(p)
@@ -120,26 +122,24 @@ export function createBuildTarget(name: string, dependencies: Array<GitPair>): B
 export async function main() {
     try {
         const sourcePath = core.getInput('sourcePath')
-        const buildTargetName = core.getInput('buildTargetName')
         const cmakeFiles = globSync([sourcePath + '/**/CMakeLists.txt', sourcePath + '/**/*.cmake'])
 
         core.startGroup('Parsing CMake files...')
         core.info(`Scanning dependencies for ${ cmakeFiles.join(', ') }`)
 
-        const dependencies = parseCMakeListsFiles(cmakeFiles)
-
-        core.info(`Found dependencies: ${ JSON.stringify(dependencies) }`);
+        const buildTargets = parseCMakeListsFiles(cmakeFiles)
         core.endGroup()
 
         core.startGroup('Submitting dependencies...')
-        const buildTarget = createBuildTarget(buildTargetName, dependencies)
         const snapshot = new Snapshot({
             name: 'cmake-dependency-submission',
             url: 'https://github.com/philips-forks/cmake-dependency-submission',
             version: '0.1.0' // x-release-please-version
         })
 
-        snapshot.addManifest(buildTarget)
+        buildTargets.forEach(buildTarget => {
+            snapshot.addManifest(buildTarget)
+        });
         submitSnapshot(snapshot)
         core.endGroup()
     }
