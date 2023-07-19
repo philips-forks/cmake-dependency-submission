@@ -15,6 +15,7 @@ Calculates dependencies for a CMake project and submits the list to the Dependen
 
 ```yml
 name: CMake Dependency Submission
+
 on:
   push:
     branches:
@@ -23,12 +24,14 @@ on:
 jobs:
   dependency-submission:
     runs-on: ubuntu-latest
+    # The Dependency Submission API requires write permission
+    permissions:
+      contents: write
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
-
       - name: Dependency Submission
-        uses: philips-forks/cmake-dependency-submission@main
+        uses: brenocq/cmake-dependency-submission@main
 ```
 
 ## License
