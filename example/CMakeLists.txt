@@ -1,29 +1,13 @@
 cmake_minimum_required(VERSION 3.14)
 project(cmake-example VERSION 1.0.0 LANGUAGES CXX)
 
-# Example linking glfw library
-find_package(glfw)
-if(glfw_FOUND)
-    message(STATUS "GLFW found")
-else()
-    message(STATUS "GLFW not found, fetch from GitHub")
-    include(FetchContent)
-    FetchContent_Declare(
-        glfw
-        GIT_REPOSITORY "https://github.com/glfw/glfw"
-        GIT_TAG "7482de6071d21db77a7236155da44c172a7f6c9e"
-        GIT_PROGRESS TRUE
-    )
+FetchContent_Declare(
+    mbedtls
+    GIT_REPOSITORY https://github.com/Mbed-TLS/mbedtls
+    GIT_TAG 2297157dd6236e4a5c2f46c84c401599ef639cf5
+    GIT_PROGRESS TRUE
+)
+FetchContent_MakeAvailable(mbedtls)
 
-    FetchContent_Declare(
-        mbedtls
-        GIT_REPOSITORY https://github.com/Mbed-TLS/mbedtls
-        GIT_TAG 2297157dd6236e4a5c2f46c84c401599ef639cf5
-        GIT_PROGRESS TRUE
-    )
-    FetchContent_MakeAvailable(glfw mbedtls)
-endif()
-
-# Create cmake-example executable
-add_executable(cmake-example "main.cpp")
-target_link_libraries(cmake-example PRIVATE glfw)
+add_executable(cmake-example main.cpp)
+target_link_libraries(cmake-example PRIVATE mbedtls)
