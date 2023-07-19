@@ -6,36 +6,32 @@
 CMake Dependency Submission
 </h1>
 
-Calculates dependencies for a cmake project and submits the list to the Dependency Submission API
+Calculates dependencies for a CMake project and submits the list to the Dependency Submission API
 
 ## Github dependency graph
 ![2022-12-01_09-57](https://user-images.githubusercontent.com/17342434/204997995-1955d053-87f4-464f-8e02-e36fa807d0b1.png)
-
 
 ## Setup
 
 ```yml
 name: CMake Dependency Submission
-on:                        
+on:
   push:
     branches:
-      - main               
+      - main
 
 jobs:
   dependency-submission:
-    runs-on: ubuntu-latest 
+    runs-on: ubuntu-latest
     permissions: # The Dependency Submission API requires write permission
-      contents: write      
+      contents: write
     steps:
-      - name: Checkout Repository     
-        uses: actions/checkout@v3       
+      - name: Checkout Repository
+        uses: actions/checkout@v3
 
       - name: Dependency Submission
         uses: brenocq/cmake-dependency-submission@main
-        with:
-          testing-action: "Hello world!"  
 ```
-
 
 ## License
 This project is licensed under the MIT License - check [LICENSE](LICENSE) for details.
