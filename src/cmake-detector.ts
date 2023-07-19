@@ -108,7 +108,7 @@ export function dependenciesToPackages(cache: PackageCache, dependencies: Array<
 export function createBuildTarget(name: string, dependencies: Array<GitPair>): BuildTarget {
     const cache = new PackageCache()
     const packages = dependenciesToPackages(cache, dependencies)
-    const buildTarget = new BuildTarget(name)
+    const buildTarget = new BuildTarget(name, core.getInput('sourcePath') + '/example/CMakeLists.txt')
 
     packages.forEach(p => {
         buildTarget.addBuildDependency(p)
@@ -131,6 +131,7 @@ export async function main() {
         core.info(`Found dependencies: ${ JSON.stringify(dependencies) }`);
         core.endGroup()
 
+        core.startGroup('Submitting dependencies...')
         const buildTarget = createBuildTarget(buildTargetName, dependencies)
         const snapshot = new Snapshot({
             name: 'cmake-dependency-submission',
@@ -140,6 +141,7 @@ export async function main() {
 
         snapshot.addManifest(buildTarget)
         submitSnapshot(snapshot)
+        core.endGroup()
     }
     catch (err) {
         core.setFailed(`Action failed with ${err}`)

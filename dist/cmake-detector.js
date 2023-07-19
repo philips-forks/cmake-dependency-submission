@@ -116,7 +116,7 @@ exports.dependenciesToPackages = dependenciesToPackages;
 function createBuildTarget(name, dependencies) {
     const cache = new dependency_submission_toolkit_1.PackageCache();
     const packages = dependenciesToPackages(cache, dependencies);
-    const buildTarget = new dependency_submission_toolkit_1.BuildTarget(name);
+    const buildTarget = new dependency_submission_toolkit_1.BuildTarget(name, core.getInput('sourcePath') + '/example/CMakeLists.txt');
     packages.forEach(p => {
         buildTarget.addBuildDependency(p);
     });
@@ -134,6 +134,7 @@ function main() {
             const dependencies = parseCMakeListsFiles(cmakeFiles);
             core.info(`Found dependencies: ${JSON.stringify(dependencies)}`);
             core.endGroup();
+            core.startGroup('Submitting dependencies...');
             const buildTarget = createBuildTarget(buildTargetName, dependencies);
             const snapshot = new dependency_submission_toolkit_1.Snapshot({
                 name: 'cmake-dependency-submission',
@@ -142,6 +143,7 @@ function main() {
             });
             snapshot.addManifest(buildTarget);
             (0, dependency_submission_toolkit_1.submitSnapshot)(snapshot);
+            core.endGroup();
         }
         catch (err) {
             core.setFailed(`Action failed with ${err}`);
