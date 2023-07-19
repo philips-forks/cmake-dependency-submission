@@ -93,7 +93,7 @@ export function parsePackageType(repo: string): string {
     for (const type of purlTypes)
         if (url.hostname.includes(type))
             if (type == 'github')
-                return 'git'
+                return 'generic'
             else
                 return type
 

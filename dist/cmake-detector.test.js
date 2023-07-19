@@ -47,7 +47,7 @@ describe('parseNamespaceAndName', () => {
 });
 describe('parsePackageType', () => {
     test('Returns correct PURL type for GitHub URL', () => {
-        expect((0, cmake_detector_1.parsePackageType)('https://github.com/foo/bar')).toBe('git');
+        expect((0, cmake_detector_1.parsePackageType)('https://github.com/foo/bar')).toBe('generic');
     });
     test('Returns correct PURL type for BitBucket URL', () => {
         expect((0, cmake_detector_1.parsePackageType)('https://bitbucket.com/foo/bar')).toBe('bitbucket');
