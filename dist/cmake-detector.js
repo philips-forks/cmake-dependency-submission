@@ -102,7 +102,10 @@ function parsePackageType(repo) {
     const url = new url_1.URL(repo);
     for (const type of purlTypes)
         if (url.hostname.includes(type))
-            return type;
+            if (type == 'github')
+                return 'git';
+            else
+                return type;
     return 'generic';
 }
 exports.parsePackageType = parsePackageType;
