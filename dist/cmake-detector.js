@@ -32,8 +32,9 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.main = exports.parseCMakeListsFiles = exports.createBuildTarget = exports.dependenciesToPackages = exports.parsePackageType = exports.parseNamespaceAndName = exports.extractFetchContentGitDetails = void 0;
+exports.main = exports.getCMakeListsFromFileApi = exports.parseCMakeListsFiles = exports.createBuildTarget = exports.dependenciesToPackages = exports.parsePackageType = exports.parseNamespaceAndName = exports.extractFetchContentGitDetails = void 0;
 const core = __importStar(require("@actions/core"));
+const exec = __importStar(require("@actions/exec"));
 const fs_1 = require("fs");
 const glob_1 = require("glob");
 const packageurl_js_1 = require("packageurl-js");
@@ -126,11 +127,48 @@ function parseCMakeListsFiles(files) {
     return buildTargets;
 }
 exports.parseCMakeListsFiles = parseCMakeListsFiles;
+function getCMakeListsFromFileApi(buildPath) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const cmakeApiPath = buildPath + '.cmake/api/v1';
+        (0, fs_1.mkdirSync)(cmakeApiPath + '/query');
+        (0, fs_1.writeFileSync)(cmakeApiPath + '/query/cmakeFiles-v1', '');
+        const cmakeCommand = yield exec.getExecOutput('cmake', ['.'], { cwd: buildPath });
+        if (cmakeCommand.exitCode !== 0) {
+            core.error(cmakeCommand.stderr);
+            core.setFailed("running 'cmake .' failed!");
+            return [];
+        }
+        let cmakeFiles = [];
+        const resultFile = (0, glob_1.globSync)(cmakeApiPath + '/reply/cmakeFile-v1-*.json');
+        resultFile.forEach(file => {
+            const jsonResult = JSON.parse((0, fs_1.readFileSync)(file).toString());
+            for (const input of jsonResult.inputs)
+                if (!input.isCMake)
+                    cmakeFiles = cmakeFiles.concat(input.path);
+        });
+        return cmakeFiles;
+    });
+}
+exports.getCMakeListsFromFileApi = getCMakeListsFromFileApi;
+function getCMakeFiles(scanMode, sourcePath, buildPath) {
+    return __awaiter(this, void 0, void 0, function* () {
+        let cmakeFiles = [];
+        if (scanMode == 'glob')
+            cmakeFiles = (0, glob_1.globSync)([sourcePath + '/**/CMakeLists.txt', sourcePath + '/**/*.cmake']);
+        else if (scanMode == 'configure')
+            cmakeFiles = yield getCMakeListsFromFileApi(buildPath);
+        else
+            throw Error(`invalid scan mode selected. Please choose either 'glob' or 'configure'`);
+        return cmakeFiles;
+    });
+}
 function main() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             const sourcePath = core.getInput('sourcePath');
-            const cmakeFiles = (0, glob_1.globSync)([sourcePath + '/**/CMakeLists.txt', sourcePath + '/**/*.cmake']);
+            const buildPath = core.getInput('buildPath');
+            const scanMode = core.getInput('scanMode');
+            const cmakeFiles = yield getCMakeFiles(scanMode, sourcePath, buildPath);
             core.startGroup('Parsing CMake files...');
             core.info(`Scanning dependencies for ${cmakeFiles.join(', ')}`);
             const buildTargets = parseCMakeListsFiles(cmakeFiles);

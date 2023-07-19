@@ -13,6 +13,11 @@ jobs:
     steps:
       - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
       - uses: philips-forks/cmake-dependency-submission@main
+      - run: cmake -S example -B build
+      - uses: philips-forks/cmake-dependency-submission@main
+        with:
+          scanMode: 'configure'
+          buildPath: 'build'
       - env:
           GH_TOKEN: ${{ github.token }}
         run: |

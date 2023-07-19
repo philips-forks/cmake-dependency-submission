@@ -31,7 +31,7 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v3
       - name: Dependency Submission
-        uses: brenocq/cmake-dependency-submission@main
+        uses: philips-forks/cmake-dependency-submission@main
 ```
 
 ## License

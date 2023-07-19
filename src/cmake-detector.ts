@@ -1,5 +1,6 @@
 import * as core from '@actions/core'
-import { readFileSync } from 'fs';
+import * as exec from '@actions/exec'
+import { readFileSync, writeFileSync, mkdirSync } from 'fs';
 import { globSync } from 'glob'
 import { PackageURL } from 'packageurl-js'
 import { relative } from 'path'
@@ -120,14 +121,59 @@ export function parseCMakeListsFiles(files: string[]): Array<BuildTarget> {
     return buildTargets
 }
 
+export async function getCMakeListsFromFileApi(buildPath: string): Promise<string[]> {
+    const cmakeApiPath = buildPath + '.cmake/api/v1'
+
+    mkdirSync(cmakeApiPath + '/query')
+    writeFileSync(cmakeApiPath + '/query/cmakeFiles-v1', '')
+
+    const cmakeCommand = await exec.getExecOutput(
+        'cmake',
+        ['.'],
+        { cwd: buildPath }
+    )
+
+    if (cmakeCommand.exitCode !== 0) {
+        core.error(cmakeCommand.stderr)
+        core.setFailed("running 'cmake .' failed!")
+        return []
+    }
+
+    let cmakeFiles: Array<string> = []
+    const resultFile = globSync(cmakeApiPath + '/reply/cmakeFile-v1-*.json')
+    resultFile.forEach(file => {
+        const jsonResult = JSON.parse(readFileSync(file).toString())
+
+        for (const input of jsonResult.inputs)
+            if (!input.isCMake)
+                cmakeFiles = cmakeFiles.concat(input.path)
+    });
+
+    return cmakeFiles
+}
+
+async function getCMakeFiles(scanMode: string, sourcePath: string, buildPath: string) {
+    let cmakeFiles: Array<string> = [];
+
+    if (scanMode == 'glob')
+        cmakeFiles = globSync([sourcePath + '/**/CMakeLists.txt', sourcePath + '/**/*.cmake']);
+    else if (scanMode == 'configure')
+        cmakeFiles = await getCMakeListsFromFileApi(buildPath);
+    else
+        throw Error(`invalid scan mode selected. Please choose either 'glob' or 'configure'`);
+
+    return cmakeFiles;
+}
+
 export async function main() {
     try {
         const sourcePath = core.getInput('sourcePath')
-        const cmakeFiles = globSync([sourcePath + '/**/CMakeLists.txt', sourcePath + '/**/*.cmake'])
+        const buildPath = core.getInput('buildPath')
+        const scanMode = core.getInput('scanMode')
+        const cmakeFiles = await getCMakeFiles(scanMode, sourcePath, buildPath);
 
         core.startGroup('Parsing CMake files...')
         core.info(`Scanning dependencies for ${ cmakeFiles.join(', ') }`)
-
         const buildTargets = parseCMakeListsFiles(cmakeFiles)
         core.endGroup()
 

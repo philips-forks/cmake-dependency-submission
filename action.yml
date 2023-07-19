@@ -13,6 +13,13 @@ inputs:
     description: "Path to source tree containing CMakeLists.txt and *.cmake files"
     default: "${{ github.workspace }}"
     required: false
+  scanMode:
+    description: "How to find CMake files; supported values are 'glob' or 'configure'. See README.md for more information"
+    default: 'glob'
+    required: false
+  buildPath:
+    description: "Path to the pre-configured build tree; only used in 'configure' mode"
+    required: false
 runs:
   using: 'node16'
   main: 'dist/index.js'
