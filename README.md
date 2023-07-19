@@ -23,14 +23,12 @@ on:
 jobs:
   dependency-submission:
     runs-on: ubuntu-latest
-    permissions: # The Dependency Submission API requires write permission
-      contents: write
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
       - name: Dependency Submission
-        uses: brenocq/cmake-dependency-submission@main
+        uses: philips-forks/cmake-dependency-submission@main
 ```
 
 ## License
