@@ -59,7 +59,7 @@ describe('parseNamespaceAndName', () => {
 
 describe('parsePackageType', () => {
   test('Returns correct PURL type for GitHub URL', () => {
-    expect(parsePackageType('https://github.com/foo/bar')).toBe('actions')
+    expect(parsePackageType('https://github.com/foo/bar')).toBe('github')
   })
 
   test('Returns correct PURL type for BitBucket URL', () => {

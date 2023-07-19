@@ -32,7 +32,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.main = exports.createBuildTarget = exports.dependenciesToPackages = exports.parsePackageType = exports.parseNamespaceAndName = exports.parseCMakeListsFiles = exports.extractFetchContentGitDetails = void 0;
+exports.main = exports.parseCMakeListsFiles = exports.createBuildTarget = exports.dependenciesToPackages = exports.parsePackageType = exports.parseNamespaceAndName = exports.extractFetchContentGitDetails = void 0;
 const core = __importStar(require("@actions/core"));
 const fs_1 = require("fs");
 const glob_1 = require("glob");
@@ -75,16 +75,6 @@ function extractFetchContentGitDetails(content) {
     return pairs;
 }
 exports.extractFetchContentGitDetails = extractFetchContentGitDetails;
-function parseCMakeListsFiles(files) {
-    let buildTargets = [];
-    files.forEach(file => {
-        const content = (0, fs_1.readFileSync)(file, 'utf-8');
-        const dependencies = extractFetchContentGitDetails(content);
-        buildTargets = buildTargets.concat(createBuildTarget((0, path_1.relative)(core.getInput('sourcePath'), file), dependencies));
-    });
-    return buildTargets;
-}
-exports.parseCMakeListsFiles = parseCMakeListsFiles;
 function parseNamespaceAndName(repo) {
     const url = new url_1.URL(repo);
     const components = url.pathname.split('/').reverse();
@@ -102,10 +92,7 @@ function parsePackageType(repo) {
     const url = new url_1.URL(repo);
     for (const type of purlTypes)
         if (url.hostname.includes(type))
-            if (type == 'github')
-                return 'actions';
-            else
-                return type;
+            return type;
     return 'generic';
 }
 exports.parsePackageType = parsePackageType;
@@ -128,6 +115,16 @@ function createBuildTarget(name, dependencies) {
     return buildTarget;
 }
 exports.createBuildTarget = createBuildTarget;
+function parseCMakeListsFiles(files) {
+    let buildTargets = [];
+    files.forEach(file => {
+        const content = (0, fs_1.readFileSync)(file, 'utf-8');
+        const dependencies = extractFetchContentGitDetails(content);
+        buildTargets = buildTargets.concat(createBuildTarget((0, path_1.relative)(core.getInput('sourcePath'), file), dependencies));
+    });
+    return buildTargets;
+}
+exports.parseCMakeListsFiles = parseCMakeListsFiles;
 function main() {
     return __awaiter(this, void 0, void 0, function* () {
         try {

@@ -58,18 +58,6 @@ export function extractFetchContentGitDetails(content: string): Array<GitPair> {
     return pairs
 }
 
-export function parseCMakeListsFiles(files: string[]): Array<BuildTarget> {
-    let buildTargets: Array<BuildTarget> = []
-
-    files.forEach(file => {
-        const content = readFileSync(file, 'utf-8');
-        const dependencies = extractFetchContentGitDetails(content)
-        buildTargets = buildTargets.concat(createBuildTarget(relative(core.getInput('sourcePath'), file), dependencies))
-    });
-
-    return buildTargets
-}
-
 export function parseNamespaceAndName(repo: string): [string, string] {
     const url = new URL(repo)
     const components = url.pathname.split('/').reverse()
@@ -92,10 +80,7 @@ export function parsePackageType(repo: string): string {
 
     for (const type of purlTypes)
         if (url.hostname.includes(type))
-            if (type == 'github')
-                return 'actions'
-            else
-                return type
+            return type
 
     return 'generic'
 }
@@ -120,6 +105,18 @@ export function createBuildTarget(name: string, dependencies: Array<GitPair>): B
     });
 
     return buildTarget
+}
+
+export function parseCMakeListsFiles(files: string[]): Array<BuildTarget> {
+    let buildTargets: Array<BuildTarget> = []
+
+    files.forEach(file => {
+        const content = readFileSync(file, 'utf-8');
+        const dependencies = extractFetchContentGitDetails(content)
+        buildTargets = buildTargets.concat(createBuildTarget(relative(core.getInput('sourcePath'), file), dependencies))
+    });
+
+    return buildTargets
 }
 
 export async function main() {
