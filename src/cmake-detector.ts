@@ -113,7 +113,8 @@ export function parseCMakeListsFiles(files: string[]): Array<BuildTarget> {
     files.forEach(file => {
         const content = readFileSync(file, 'utf-8');
         const dependencies = extractFetchContentGitDetails(content)
-        buildTargets = buildTargets.concat(createBuildTarget(relative(core.getInput('sourcePath'), file), dependencies))
+        if (dependencies.length > 0)
+            buildTargets = buildTargets.concat(createBuildTarget(relative(core.getInput('sourcePath'), file), dependencies))
     });
 
     return buildTargets
