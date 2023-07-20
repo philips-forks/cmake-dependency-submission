@@ -15,13 +15,16 @@ import {
 
 type GitPair = { repo: string, tag: string }
 
+const scanModeGlob = 'glob'
+const scanModeConfigure = 'configure'
+
 function normalizeCMakeArgument(value: string): string {
     return value.replace(/[")]+/g, '')
 }
 
 function getArgumentForKeyword(keyword: string, line: string): string {
     const array = line.slice(line.indexOf(keyword)).split(/\s+/);
-    return normalizeCMakeArgument(array[array.findIndex((value) => value == keyword) + 1])
+    return normalizeCMakeArgument(array[array.findIndex((value) => value === keyword) + 1])
 }
 
 export function extractFetchContentGitDetails(content: string): Array<GitPair> {
@@ -158,12 +161,12 @@ export async function getCMakeListsFromFileApi(buildPath: string): Promise<strin
 async function getCMakeFiles(scanMode: string, sourcePath: string, buildPath: string) {
     let cmakeFiles: Array<string> = [];
 
-    if (scanMode == 'glob')
+    if (scanMode === scanModeGlob)
         cmakeFiles = globSync([sourcePath + '/**/CMakeLists.txt', sourcePath + '/**/*.cmake']);
-    else if (scanMode == 'configure')
+    else if (scanMode === scanModeConfigure)
         cmakeFiles = await getCMakeListsFromFileApi(buildPath);
     else
-        throw Error(`invalid scan mode selected. Please choose either 'glob' or 'configure'`);
+        throw Error(`invalid scanMode selected. Please choose either '${ scanModeGlob }' or '${ scanModeConfigure }'`);
 
     return cmakeFiles;
 }
@@ -173,9 +176,12 @@ export async function main() {
         const sourcePath = core.getInput('sourcePath')
         const buildPath = core.getInput('buildPath')
         const scanMode = core.getInput('scanMode')
-        const cmakeFiles = await getCMakeFiles(scanMode, sourcePath, buildPath);
+
+        if (scanMode === scanModeConfigure && buildPath.length === 0)
+            throw Error(`buildPath input is required when using ${ scanModeConfigure } scanMode`)
 
         core.startGroup('Parsing CMake files...')
+        const cmakeFiles = await getCMakeFiles(scanMode, sourcePath, buildPath);
         core.info(`Scanning dependencies for ${ cmakeFiles.join(', ') }`)
         const buildTargets = parseCMakeListsFiles(cmakeFiles)
         core.endGroup()
@@ -194,6 +200,6 @@ export async function main() {
         core.endGroup()
     }
     catch (err) {
-        core.setFailed(`Action failed with ${err}`)
+        core.setFailed(`Action failed with ${ err }`)
     }
 }

@@ -1,14 +1,14 @@
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 3.24)
 project(cmake-example VERSION 1.0.0 LANGUAGES CXX)
 
 include(FetchContent)
 FetchContent_Declare(
-    mbedtls
-    GIT_REPOSITORY https://github.com/Mbed-TLS/mbedtls
-    GIT_TAG 2297157dd6236e4a5c2f46c84c401599ef639cf5
+    emil
+    GIT_REPOSITORY https://github.com/philips-software/amp-embedded-infra-lib
+    GIT_TAG v4.0.0
     GIT_PROGRESS TRUE
 )
-FetchContent_MakeAvailable(mbedtls)
+FetchContent_MakeAvailable(emil)
 
 add_executable(cmake-example main.cpp)
-target_link_libraries(cmake-example PRIVATE mbedtls)
+target_link_libraries(cmake-example PRIVATE infra.util)

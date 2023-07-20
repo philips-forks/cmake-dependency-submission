@@ -48,12 +48,14 @@ const packageurl_js_1 = __nccwpck_require__(8915);
 const path_1 = __nccwpck_require__(1017);
 const url_1 = __nccwpck_require__(7310);
 const dependency_submission_toolkit_1 = __nccwpck_require__(9810);
+const scanModeGlob = 'glob';
+const scanModeConfigure = 'configure';
 function normalizeCMakeArgument(value) {
     return value.replace(/[")]+/g, '');
 }
 function getArgumentForKeyword(keyword, line) {
     const array = line.slice(line.indexOf(keyword)).split(/\s+/);
-    return normalizeCMakeArgument(array[array.findIndex((value) => value == keyword) + 1]);
+    return normalizeCMakeArgument(array[array.findIndex((value) => value === keyword) + 1]);
 }
 function extractFetchContentGitDetails(content) {
     let pairs = [];
@@ -161,12 +163,12 @@ exports.getCMakeListsFromFileApi = getCMakeListsFromFileApi;
 function getCMakeFiles(scanMode, sourcePath, buildPath) {
     return __awaiter(this, void 0, void 0, function* () {
         let cmakeFiles = [];
-        if (scanMode == 'glob')
+        if (scanMode === scanModeGlob)
             cmakeFiles = (0, glob_1.globSync)([sourcePath + '/**/CMakeLists.txt', sourcePath + '/**/*.cmake']);
-        else if (scanMode == 'configure')
+        else if (scanMode === scanModeConfigure)
             cmakeFiles = yield getCMakeListsFromFileApi(buildPath);
         else
-            throw Error(`invalid scan mode selected. Please choose either 'glob' or 'configure'`);
+            throw Error(`invalid scanMode selected. Please choose either '${scanModeGlob}' or '${scanModeConfigure}'`);
         return cmakeFiles;
     });
 }
@@ -176,8 +178,10 @@ function main() {
             const sourcePath = core.getInput('sourcePath');
             const buildPath = core.getInput('buildPath');
             const scanMode = core.getInput('scanMode');
-            const cmakeFiles = yield getCMakeFiles(scanMode, sourcePath, buildPath);
+            if (scanMode === scanModeConfigure && buildPath.length === 0)
+                throw Error(`buildPath input is required when using ${scanModeConfigure} scanMode`);
             core.startGroup('Parsing CMake files...');
+            const cmakeFiles = yield getCMakeFiles(scanMode, sourcePath, buildPath);
             core.info(`Scanning dependencies for ${cmakeFiles.join(', ')}`);
             const buildTargets = parseCMakeListsFiles(cmakeFiles);
             core.endGroup();
