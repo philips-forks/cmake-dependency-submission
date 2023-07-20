@@ -142,16 +142,17 @@ function getCMakeListsFromFileApi(buildPath) {
         const cmakeCommand = yield exec.getExecOutput('cmake', ['.'], { cwd: buildPath });
         if (cmakeCommand.exitCode !== 0) {
             core.error(cmakeCommand.stderr);
-            core.setFailed("running 'cmake .' failed!");
-            return [];
+            throw Error(`running 'cmake .' failed!`);
         }
         let cmakeFiles = [];
         const resultFiles = (0, glob_1.globSync)(cmakeApiPath + '/reply/cmakeFiles-v1-*.json');
         resultFiles.forEach(file => {
             const jsonResult = JSON.parse((0, fs_1.readFileSync)(file).toString());
             for (const input of jsonResult.inputs)
-                if (!input.isCMake)
-                    cmakeFiles = cmakeFiles.concat(input.path);
+                if (!input.isCMake) {
+                    const path = (0, path_1.isAbsolute)(input.path) ? input.path : (0, path_1.join)(jsonResult.paths.source, input.path);
+                    cmakeFiles = cmakeFiles.concat(path);
+                }
         });
         return cmakeFiles;
     });

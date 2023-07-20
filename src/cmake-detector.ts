@@ -3,7 +3,7 @@ import * as exec from '@actions/exec'
 import { readFileSync, writeFileSync, mkdirSync } from 'fs';
 import { globSync } from 'glob'
 import { PackageURL } from 'packageurl-js'
-import { relative } from 'path'
+import { relative, isAbsolute, join } from 'path'
 import { URL } from 'url'
 import {
     PackageCache,
@@ -135,8 +135,8 @@ export async function getCMakeListsFromFileApi(buildPath: string): Promise<strin
 
     if (cmakeCommand.exitCode !== 0) {
         core.error(cmakeCommand.stderr)
-        core.setFailed("running 'cmake .' failed!")
-        return []
+
+        throw Error(`running 'cmake .' failed!`)
     }
 
     let cmakeFiles: Array<string> = []
@@ -146,7 +146,10 @@ export async function getCMakeListsFromFileApi(buildPath: string): Promise<strin
 
         for (const input of jsonResult.inputs)
             if (!input.isCMake)
-                cmakeFiles = cmakeFiles.concat(input.path)
+            {
+                const path = isAbsolute(input.path) ? input.path : join(jsonResult.paths.source, input.path)
+                cmakeFiles = cmakeFiles.concat(path)
+            }
     });
 
     return cmakeFiles
