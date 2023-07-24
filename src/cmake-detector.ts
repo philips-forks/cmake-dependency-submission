@@ -1,6 +1,6 @@
 import * as core from '@actions/core'
 import * as exec from '@actions/exec'
-import { readFileSync, writeFileSync, mkdirSync } from 'fs';
+import { readFileSync, writeFileSync, mkdirSync } from 'fs'
 import { globSync } from 'glob'
 import { PackageURL } from 'packageurl-js'
 import { relative, isAbsolute, join } from 'path'
@@ -23,7 +23,7 @@ function normalizeCMakeArgument(value: string): string {
 }
 
 function getArgumentForKeyword(keyword: string, line: string): string {
-    const array = line.slice(line.indexOf(keyword)).split(/\s+/);
+    const array = line.slice(line.indexOf(keyword)).split(/\s+/)
     return normalizeCMakeArgument(array[array.findIndex((value) => value === keyword) + 1])
 }
 
@@ -35,7 +35,7 @@ export function extractFetchContentGitDetails(content: string): Array<GitPair> {
 
     content.split(/\r?\n/).forEach((line) => {
         if (line.includes('FetchContent_Declare'))
-            readingFetch = true;
+            readingFetch = true
 
         if (readingFetch) {
             const gitRepositoryKeyword = 'GIT_REPOSITORY'
@@ -48,7 +48,7 @@ export function extractFetchContentGitDetails(content: string): Array<GitPair> {
                 tag = getArgumentForKeyword(gitTagKeword, line)
 
             if (line.includes(')')) {
-                readingFetch = false;
+                readingFetch = false
 
                 if (repo && tag) {
                     pairs.push({ repo: repo, tag: tag })
@@ -106,7 +106,7 @@ export function createBuildTarget(name: string, dependencies: Array<GitPair>): B
 
     packages.forEach(p => {
         buildTarget.addBuildDependency(p)
-    });
+    })
 
     return buildTarget
 }
@@ -115,20 +115,20 @@ export function parseCMakeListsFiles(files: string[]): Array<BuildTarget> {
     let buildTargets: Array<BuildTarget> = []
 
     files.forEach(file => {
-        const content = readFileSync(file, 'utf-8');
+        const content = readFileSync(file, 'utf-8')
         const dependencies = extractFetchContentGitDetails(content)
         if (dependencies.length > 0)
             buildTargets = buildTargets.concat(createBuildTarget(relative(core.getInput('sourcePath'), file), dependencies))
-    });
+    })
 
     return buildTargets
 }
 
 export async function getCMakeListsFromFileApi(buildPath: string): Promise<string[]> {
-    const cmakeApiPath = buildPath + '/.cmake/api/v1'
+    const cmakeApiPath = join(buildPath, '.cmake', 'api', 'v1')
 
-    mkdirSync(cmakeApiPath + '/query', { recursive: true })
-    writeFileSync(cmakeApiPath + '/query/cmakeFiles-v1', '')
+    mkdirSync(join(cmakeApiPath, 'query'), { recursive: true })
+    writeFileSync(join(cmakeApiPath, 'query', 'cmakeFiles-v1'), '')
 
     const cmakeCommand = await exec.getExecOutput(
         'cmake',
@@ -143,7 +143,7 @@ export async function getCMakeListsFromFileApi(buildPath: string): Promise<strin
     }
 
     let cmakeFiles: Array<string> = []
-    const resultFiles = globSync(cmakeApiPath + '/reply/cmakeFiles-v1-*.json')
+    const resultFiles = globSync(join(cmakeApiPath, 'reply', 'cmakeFiles-v1-*.json'))
     resultFiles.forEach(file => {
         const jsonResult = JSON.parse(readFileSync(file).toString())
 
@@ -153,22 +153,22 @@ export async function getCMakeListsFromFileApi(buildPath: string): Promise<strin
                 const path = isAbsolute(input.path) ? input.path : join(jsonResult.paths.source, input.path)
                 cmakeFiles = cmakeFiles.concat(path)
             }
-    });
+    })
 
     return cmakeFiles
 }
 
 async function getCMakeFiles(scanMode: string, sourcePath: string, buildPath: string) {
-    let cmakeFiles: Array<string> = [];
+    let cmakeFiles: Array<string> = []
 
     if (scanMode === scanModeGlob)
-        cmakeFiles = globSync([sourcePath + '/**/CMakeLists.txt', sourcePath + '/**/*.cmake']);
+        cmakeFiles = globSync([join(sourcePath, '**', 'CMakeLists.txt'), join(sourcePath, '**', '*.cmake')])
     else if (scanMode === scanModeConfigure)
-        cmakeFiles = await getCMakeListsFromFileApi(buildPath);
+        cmakeFiles = await getCMakeListsFromFileApi(buildPath)
     else
-        throw Error(`invalid scanMode selected. Please choose either '${ scanModeGlob }' or '${ scanModeConfigure }'`);
+        throw Error(`invalid scanMode selected. Please choose either '${ scanModeGlob }' or '${ scanModeConfigure }'`)
 
-    return cmakeFiles;
+    return cmakeFiles
 }
 
 export async function main() {
@@ -181,7 +181,7 @@ export async function main() {
             throw Error(`buildPath input is required when using ${ scanModeConfigure } scanMode`)
 
         core.startGroup('Parsing CMake files...')
-        const cmakeFiles = await getCMakeFiles(scanMode, sourcePath, buildPath);
+        const cmakeFiles = await getCMakeFiles(scanMode, sourcePath, buildPath)
         core.info(`Scanning dependencies for ${ cmakeFiles.join(', ') }`)
         const buildTargets = parseCMakeListsFiles(cmakeFiles)
         core.endGroup()
@@ -195,7 +195,7 @@ export async function main() {
 
         buildTargets.forEach(buildTarget => {
             snapshot.addManifest(buildTarget)
-        });
+        })
         submitSnapshot(snapshot)
         core.endGroup()
     }
