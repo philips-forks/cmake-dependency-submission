@@ -59,6 +59,14 @@ export function extractFetchContentGitDetails(content: string): Array<PackageURL
     let tag: string | undefined = undefined
 
     content.split(/\r?\n/).forEach((line) => {
+        if (line.includes('cmake-dependency-scan'))
+        {
+            line.split(/\s+/).forEach(element => {
+                if (element.startsWith('pkg:'))
+                    purls.push(PackageURL.fromString(element))
+            });
+        }
+
         if (line.includes('FetchContent_Declare'))
             readingFetch = true
 

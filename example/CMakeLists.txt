@@ -10,5 +10,8 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(emil)
 
+# Example of annotated dependency
+# cmake-dependency-scan pkg:github/google/googletest@v1.13.0
+
 add_executable(cmake-example main.cpp)
 target_link_libraries(cmake-example PRIVATE infra.util)

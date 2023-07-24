@@ -78,6 +78,12 @@ function extractFetchContentGitDetails(content) {
     let repo = undefined;
     let tag = undefined;
     content.split(/\r?\n/).forEach((line) => {
+        if (line.includes('cmake-dependency-scan')) {
+            line.split(/\s+/).forEach(element => {
+                if (element.startsWith('pkg:'))
+                    purls.push(packageurl_js_1.PackageURL.fromString(element));
+            });
+        }
         if (line.includes('FetchContent_Declare'))
             readingFetch = true;
         if (readingFetch) {

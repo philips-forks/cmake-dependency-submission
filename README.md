@@ -66,6 +66,16 @@ jobs:
           buildPath: 'build'
 ```
 
+## Non-FetchContent dependencies
+
+When an external dependency is not FetchContent-compatible, or there is another reason to consume a dependency without using FetchContent, the dependency can still be detected by this Action using an annotation in a CMake file.
+
+The annotation should be in the following format:
+
+`# cmake-dependency-scan [package-url]`
+
+Where `[package-url]` should be a valid Package URL like `pkg:github/google/googletest@v1.13.0`
+
 ## License
 
-This project is licensed under the MIT License - check [LICENSE](LICENSE) for details.
+This project is licensed under the [MIT](https://choosealicense.com/licenses/mit/) license. See [LICENSE](LICENSE) for details.
