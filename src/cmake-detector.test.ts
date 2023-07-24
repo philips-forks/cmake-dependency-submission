@@ -4,7 +4,7 @@ describe('extractFetchContentGitDetails', () => {
   const fetchContentDataSimple = ['FetchContent_Declare(', 'GIT_REPOSITORY https://github.com/owner/repo', 'GIT_TAG v1.0.0', ')']
   const fetchContentDataComment = ['FetchContent_Declare(', 'GIT_REPOSITORY https://github.com/owner/repo', 'GIT_TAG  v1.0.0 # release-1.0.0', ')']
   const fetchContentDataQuoted = ['FetchContent_Declare(', 'GIT_REPOSITORY "https://github.com/owner/repo"', 'GIT_TAG "v1.0.0"', ')']
-  const expectedResult = { repo: 'https://github.com/owner/repo', tag: 'v1.0.0' }
+  const expectedResult = { name: 'repo', namespace: 'owner', qualifiers: null, subpath: null, type: 'github', version: 'v1.0.0' }
 
   test('Returns empty for no input', () => {
     expect(extractFetchContentGitDetails('')).toStrictEqual([])
@@ -19,27 +19,27 @@ describe('extractFetchContentGitDetails', () => {
   })
 
   test('Returns match for valid FetchContent_Declare', () => {
-    expect(extractFetchContentGitDetails(fetchContentDataSimple.join('\n'))).toStrictEqual([expectedResult])
+    expect(extractFetchContentGitDetails(fetchContentDataSimple.join('\n'))).toEqual([expectedResult])
   })
 
   test('Returns matches for multiple FetchContent_Declares', () => {
-    expect(extractFetchContentGitDetails((fetchContentDataSimple.concat(fetchContentDataSimple)).join('\n'))).toStrictEqual([expectedResult, expectedResult])
+    expect(extractFetchContentGitDetails((fetchContentDataSimple.concat(fetchContentDataSimple)).join('\n'))).toEqual([expectedResult, expectedResult])
   })
 
   test('Returns matches for single-line FetchContent_Declare', () => {
-    expect(extractFetchContentGitDetails('FetchContent_Declare(GIT_REPOSITORY https://github.com/owner/repo GIT_TAG v1.0.0)')).toStrictEqual([expectedResult])
+    expect(extractFetchContentGitDetails('FetchContent_Declare(GIT_REPOSITORY https://github.com/owner/repo GIT_TAG v1.0.0)')).toEqual([expectedResult])
   })
 
   test('Returns match for FetchContent_Declare with CRLF line endings', () => {
-    expect(extractFetchContentGitDetails(fetchContentDataSimple.join('\r\n'))).toStrictEqual([expectedResult])
+    expect(extractFetchContentGitDetails(fetchContentDataSimple.join('\r\n'))).toEqual([expectedResult])
   })
 
   test('Returns match for FetchContent_Declare with comments', () => {
-    expect(extractFetchContentGitDetails(fetchContentDataComment.join('\n'))).toStrictEqual([expectedResult])
+    expect(extractFetchContentGitDetails(fetchContentDataComment.join('\n'))).toEqual([expectedResult])
   })
 
   test('Returns match for FetchContent_Declare with quoted arguments', () => {
-    expect(extractFetchContentGitDetails(fetchContentDataQuoted.join('\n'))).toStrictEqual([expectedResult])
+    expect(extractFetchContentGitDetails(fetchContentDataQuoted.join('\n'))).toEqual([expectedResult])
   })
 })
 

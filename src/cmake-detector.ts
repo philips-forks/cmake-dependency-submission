@@ -8,12 +8,9 @@ import { URL } from 'url'
 import {
     PackageCache,
     BuildTarget,
-    Package,
     Snapshot,
     submitSnapshot
 } from '@github/dependency-submission-toolkit'
-
-type GitPair = { repo: string, tag: string }
 
 const scanModeGlob = 'glob'
 const scanModeConfigure = 'configure'
@@ -27,8 +24,36 @@ function getArgumentForKeyword(keyword: string, line: string): string {
     return normalizeCMakeArgument(array[array.findIndex((value) => value === keyword) + 1])
 }
 
-export function extractFetchContentGitDetails(content: string): Array<GitPair> {
-    let pairs: Array<GitPair> = []
+export function parseNamespaceAndName(repo: string): [string, string] {
+    const url = new URL(repo)
+    const components = url.pathname.split('/').reverse()
+
+    if (components.length > 2 && components[0].length > 0) {
+        return [
+            encodeURIComponent(components[1].toLowerCase()),
+            encodeURIComponent(components[0].replace('.git', '').toLowerCase())
+        ]
+    }
+
+    throw new Error(
+      `expectation violated: Git URL '${repo}' has an invalid format`
+    )
+}
+
+export function parsePackageType(repo: string): string {
+    // Supported types taken from: https://github.com/package-url/purl-spec/blob/master/PURL-TYPES.rst
+    const purlTypes = ['github', 'bitbucket']
+    const url = new URL(repo)
+
+    for (const type of purlTypes)
+        if (url.hostname.includes(type))
+            return type
+
+    return 'generic'
+}
+
+export function extractFetchContentGitDetails(content: string): Array<PackageURL> {
+    let purls: Array<PackageURL> = []
     let readingFetch: boolean = false
     let repo: string | undefined = undefined
     let tag: string | undefined = undefined
@@ -51,7 +76,10 @@ export function extractFetchContentGitDetails(content: string): Array<GitPair> {
                 readingFetch = false
 
                 if (repo && tag) {
-                    pairs.push({ repo: repo, tag: tag })
+                    const [namespace, name] = parseNamespaceAndName(repo)
+                    const type = parsePackageType(repo)
+
+                    purls.push(new PackageURL(type, namespace, name, tag, null, null))
                     repo = undefined
                     tag = undefined
                 }
@@ -59,53 +87,15 @@ export function extractFetchContentGitDetails(content: string): Array<GitPair> {
         }
     })
 
-    return pairs
+    return purls
 }
 
-export function parseNamespaceAndName(repo: string): [string, string] {
-    const url = new URL(repo)
-    const components = url.pathname.split('/').reverse()
-
-    if (components.length > 2 && components[0].length > 0) {
-        return [
-            encodeURIComponent(components[1].toLowerCase()),
-            encodeURIComponent(components[0].replace('.git', '').toLowerCase())
-        ]
-    }
-
-    throw new Error(
-      `expectation violated: Git URL '${repo}' has an invalid format`
-    )
-}
-
-export function parsePackageType(repo: string): string {
-    const purlTypes = ['github', 'bitbucket'] // From: https://github.com/package-url/purl-spec/blob/master/PURL-TYPES.rst
-    const url = new URL(repo)
-
-    for (const type of purlTypes)
-        if (url.hostname.includes(type))
-            return type
-
-    return 'generic'
-}
-
-export function dependenciesToPackages(cache: PackageCache, dependencies: Array<GitPair>): Array<Package> {
-    return dependencies.map((git) => {
-        const [namespace, name] = parseNamespaceAndName(git.repo)
-        const type = parsePackageType(git.repo)
-        const purl = new PackageURL(type, namespace, name, git.tag, null, null)
-
-        return cache.package(purl)
-    })
-}
-
-export function createBuildTarget(name: string, dependencies: Array<GitPair>): BuildTarget {
-    const cache = new PackageCache()
-    const packages = dependenciesToPackages(cache, dependencies)
+export function createBuildTarget(name: string, dependencies: Array<PackageURL>): BuildTarget {
     const buildTarget = new BuildTarget(name, name)
+    const cache = new PackageCache()
 
-    packages.forEach(p => {
-        buildTarget.addBuildDependency(p)
+    dependencies.forEach(purl => {
+        buildTarget.addBuildDependency(cache.package(purl))
     })
 
     return buildTarget
@@ -113,12 +103,23 @@ export function createBuildTarget(name: string, dependencies: Array<GitPair>): B
 
 export function parseCMakeListsFiles(files: string[]): Array<BuildTarget> {
     let buildTargets: Array<BuildTarget> = []
+    const cache = new PackageCache()
 
     files.forEach(file => {
         const content = readFileSync(file, 'utf-8')
         const dependencies = extractFetchContentGitDetails(content)
+
         if (dependencies.length > 0)
-            buildTargets = buildTargets.concat(createBuildTarget(relative(core.getInput('sourcePath'), file), dependencies))
+        {
+            const relativePath = relative(core.getInput('sourcePath'), file)
+            const buildTarget = new BuildTarget(relativePath, relativePath)
+        
+            dependencies.forEach(dependency => {
+                buildTarget.addBuildDependency(cache.package(dependency))
+            })
+        
+            buildTargets.push(buildTarget)
+        }
     })
 
     return buildTargets
@@ -148,7 +149,7 @@ export async function getCMakeListsFromFileApi(buildPath: string): Promise<strin
         const jsonResult = JSON.parse(readFileSync(file).toString())
 
         for (const input of jsonResult.inputs)
-            if (!input.isCMake)
+            if (!input.isCMake) // If isCMake is true, it's a CMake 'internal' module; included in the CMake installation
             {
                 const path = isAbsolute(input.path) ? input.path : join(jsonResult.paths.source, input.path)
                 cmakeFiles = cmakeFiles.concat(path)

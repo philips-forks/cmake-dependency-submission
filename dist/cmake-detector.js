@@ -32,7 +32,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.main = exports.getCMakeListsFromFileApi = exports.parseCMakeListsFiles = exports.createBuildTarget = exports.dependenciesToPackages = exports.parsePackageType = exports.parseNamespaceAndName = exports.extractFetchContentGitDetails = void 0;
+exports.main = exports.getCMakeListsFromFileApi = exports.parseCMakeListsFiles = exports.createBuildTarget = exports.extractFetchContentGitDetails = exports.parsePackageType = exports.parseNamespaceAndName = void 0;
 const core = __importStar(require("@actions/core"));
 const exec = __importStar(require("@actions/exec"));
 const fs_1 = require("fs");
@@ -50,8 +50,30 @@ function getArgumentForKeyword(keyword, line) {
     const array = line.slice(line.indexOf(keyword)).split(/\s+/);
     return normalizeCMakeArgument(array[array.findIndex((value) => value === keyword) + 1]);
 }
+function parseNamespaceAndName(repo) {
+    const url = new url_1.URL(repo);
+    const components = url.pathname.split('/').reverse();
+    if (components.length > 2 && components[0].length > 0) {
+        return [
+            encodeURIComponent(components[1].toLowerCase()),
+            encodeURIComponent(components[0].replace('.git', '').toLowerCase())
+        ];
+    }
+    throw new Error(`expectation violated: Git URL '${repo}' has an invalid format`);
+}
+exports.parseNamespaceAndName = parseNamespaceAndName;
+function parsePackageType(repo) {
+    // Supported types taken from: https://github.com/package-url/purl-spec/blob/master/PURL-TYPES.rst
+    const purlTypes = ['github', 'bitbucket'];
+    const url = new url_1.URL(repo);
+    for (const type of purlTypes)
+        if (url.hostname.includes(type))
+            return type;
+    return 'generic';
+}
+exports.parsePackageType = parsePackageType;
 function extractFetchContentGitDetails(content) {
-    let pairs = [];
+    let purls = [];
     let readingFetch = false;
     let repo = undefined;
     let tag = undefined;
@@ -68,83 +90,62 @@ function extractFetchContentGitDetails(content) {
             if (line.includes(')')) {
                 readingFetch = false;
                 if (repo && tag) {
-                    pairs.push({ repo: repo, tag: tag });
+                    const [namespace, name] = parseNamespaceAndName(repo);
+                    const type = parsePackageType(repo);
+                    purls.push(new packageurl_js_1.PackageURL(type, namespace, name, tag, null, null));
                     repo = undefined;
                     tag = undefined;
                 }
             }
         }
     });
-    return pairs;
+    return purls;
 }
 exports.extractFetchContentGitDetails = extractFetchContentGitDetails;
-function parseNamespaceAndName(repo) {
-    const url = new url_1.URL(repo);
-    const components = url.pathname.split('/').reverse();
-    if (components.length > 2 && components[0].length > 0) {
-        return [
-            encodeURIComponent(components[1].toLowerCase()),
-            encodeURIComponent(components[0].replace('.git', '').toLowerCase())
-        ];
-    }
-    throw new Error(`expectation violated: Git URL '${repo}' has an invalid format`);
-}
-exports.parseNamespaceAndName = parseNamespaceAndName;
-function parsePackageType(repo) {
-    const purlTypes = ['github', 'bitbucket']; // From: https://github.com/package-url/purl-spec/blob/master/PURL-TYPES.rst
-    const url = new url_1.URL(repo);
-    for (const type of purlTypes)
-        if (url.hostname.includes(type))
-            return type;
-    return 'generic';
-}
-exports.parsePackageType = parsePackageType;
-function dependenciesToPackages(cache, dependencies) {
-    return dependencies.map((git) => {
-        const [namespace, name] = parseNamespaceAndName(git.repo);
-        const type = parsePackageType(git.repo);
-        const purl = new packageurl_js_1.PackageURL(type, namespace, name, git.tag, null, null);
-        return cache.package(purl);
-    });
-}
-exports.dependenciesToPackages = dependenciesToPackages;
 function createBuildTarget(name, dependencies) {
-    const cache = new dependency_submission_toolkit_1.PackageCache();
-    const packages = dependenciesToPackages(cache, dependencies);
     const buildTarget = new dependency_submission_toolkit_1.BuildTarget(name, name);
-    packages.forEach(p => {
-        buildTarget.addBuildDependency(p);
+    const cache = new dependency_submission_toolkit_1.PackageCache();
+    dependencies.forEach(purl => {
+        buildTarget.addBuildDependency(cache.package(purl));
     });
     return buildTarget;
 }
 exports.createBuildTarget = createBuildTarget;
 function parseCMakeListsFiles(files) {
     let buildTargets = [];
+    const cache = new dependency_submission_toolkit_1.PackageCache();
     files.forEach(file => {
         const content = (0, fs_1.readFileSync)(file, 'utf-8');
         const dependencies = extractFetchContentGitDetails(content);
-        if (dependencies.length > 0)
-            buildTargets = buildTargets.concat(createBuildTarget((0, path_1.relative)(core.getInput('sourcePath'), file), dependencies));
+        if (dependencies.length > 0) {
+            const relativePath = (0, path_1.relative)(core.getInput('sourcePath'), file);
+            const buildTarget = new dependency_submission_toolkit_1.BuildTarget(relativePath, relativePath);
+            dependencies.forEach(dependency => {
+                buildTarget.addBuildDependency(cache.package(dependency));
+            });
+            buildTargets.push(buildTarget);
+        }
     });
     return buildTargets;
 }
 exports.parseCMakeListsFiles = parseCMakeListsFiles;
 function getCMakeListsFromFileApi(buildPath) {
     return __awaiter(this, void 0, void 0, function* () {
-        const cmakeApiPath = buildPath + '/.cmake/api/v1';
-        (0, fs_1.mkdirSync)(cmakeApiPath + '/query', { recursive: true });
-        (0, fs_1.writeFileSync)(cmakeApiPath + '/query/cmakeFiles-v1', '');
+        const cmakeApiPath = (0, path_1.join)(buildPath, '.cmake', 'api', 'v1');
+        (0, fs_1.mkdirSync)((0, path_1.join)(cmakeApiPath, 'query'), { recursive: true });
+        (0, fs_1.writeFileSync)((0, path_1.join)(cmakeApiPath, 'query', 'cmakeFiles-v1'), '');
         const cmakeCommand = yield exec.getExecOutput('cmake', ['.'], { cwd: buildPath });
         if (cmakeCommand.exitCode !== 0) {
             core.error(cmakeCommand.stderr);
             throw Error(`running 'cmake .' failed!`);
         }
         let cmakeFiles = [];
-        const resultFiles = (0, glob_1.globSync)(cmakeApiPath + '/reply/cmakeFiles-v1-*.json');
+        const resultFiles = (0, glob_1.globSync)((0, path_1.join)(cmakeApiPath, 'reply', 'cmakeFiles-v1-*.json'));
         resultFiles.forEach(file => {
             const jsonResult = JSON.parse((0, fs_1.readFileSync)(file).toString());
             for (const input of jsonResult.inputs)
-                if (!input.isCMake) {
+                if (!input.isCMake) // If isCMake is true, it's a CMake 'internal' module; included in the CMake installation
+                 {
                     const path = (0, path_1.isAbsolute)(input.path) ? input.path : (0, path_1.join)(jsonResult.paths.source, input.path);
                     cmakeFiles = cmakeFiles.concat(path);
                 }
@@ -157,7 +158,7 @@ function getCMakeFiles(scanMode, sourcePath, buildPath) {
     return __awaiter(this, void 0, void 0, function* () {
         let cmakeFiles = [];
         if (scanMode === scanModeGlob)
-            cmakeFiles = (0, glob_1.globSync)([sourcePath + '/**/CMakeLists.txt', sourcePath + '/**/*.cmake']);
+            cmakeFiles = (0, glob_1.globSync)([(0, path_1.join)(sourcePath, '**', 'CMakeLists.txt'), (0, path_1.join)(sourcePath, '**', '*.cmake')]);
         else if (scanMode === scanModeConfigure)
             cmakeFiles = yield getCMakeListsFromFileApi(buildPath);
         else
