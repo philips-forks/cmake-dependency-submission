@@ -74,7 +74,7 @@ The annotation should be in the following format:
 
 `# cmake-dependency-scan [package-url]`
 
-Where `[package-url]` should be a valid Package URL like `pkg:github/google/googletest@v1.13.0`
+Where `[package-url]` should be a valid [Package URL](https://github.com/package-url/purl-spec) like `pkg:github/google/googletest@v1.13.0`
 
 ## License
 
