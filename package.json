@@ -23,7 +23,7 @@
     "license": "MIT",
     "dependencies": {
         "@actions/core": "^1.10.1",
-        "@github/dependency-submission-toolkit": "^1.2.10",
+        "@github/dependency-submission-toolkit": "^2.0.4",
         "glob": "^10.3.10",
         "packageurl-js": "^0.0.6"
     },
