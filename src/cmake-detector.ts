@@ -2,7 +2,6 @@ import * as core from '@actions/core'
 import * as exec from '@actions/exec'
 import { readFileSync, writeFileSync, mkdirSync } from 'fs'
 import { globSync } from 'glob'
-import { PackageURL } from 'packageurl-js'
 import { relative, isAbsolute, join } from 'path'
 import { URL } from 'url'
 import {
@@ -11,6 +10,7 @@ import {
     Snapshot,
     submitSnapshot
 } from '@github/dependency-submission-toolkit'
+import { PackageURL } from 'packageurl-js'
 
 const scanModeGlob = 'glob'
 const scanModeConfigure = 'configure'

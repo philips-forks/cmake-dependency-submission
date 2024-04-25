@@ -37,10 +37,10 @@ const core = __importStar(require("@actions/core"));
 const exec = __importStar(require("@actions/exec"));
 const fs_1 = require("fs");
 const glob_1 = require("glob");
-const packageurl_js_1 = require("packageurl-js");
 const path_1 = require("path");
 const url_1 = require("url");
 const dependency_submission_toolkit_1 = require("@github/dependency-submission-toolkit");
+const packageurl_js_1 = require("packageurl-js");
 const scanModeGlob = 'glob';
 const scanModeConfigure = 'configure';
 function normalizeCMakeArgument(value) {
