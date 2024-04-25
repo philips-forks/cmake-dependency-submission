@@ -7,5 +7,5 @@
       ]
     }
   },
-  "postCreateCommand": "npm install"
+  "postCreateCommand": "npm install && npm i -g @vercel/ncc"
 }
